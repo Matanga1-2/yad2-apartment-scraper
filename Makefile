@@ -1,11 +1,10 @@
-.PHONY: check
+.PHONY: test
 
-check:
-	ruff check . --fix
-	pytest
+test:
+	pytest -v
 
-check_browser:
-	pytest -v -s tests/test_browser.py
+test-address:
+	pytest -v tests/address/
 
-check_yad2:
-	pytest -v -s tests/test_yad2_client.py
+coverage:
+	pytest --cov=src tests/

@@ -1,6 +1,7 @@
 # General
 .idea
 .DS_Store
+consts/supported_streets.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
