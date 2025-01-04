@@ -8,3 +8,9 @@ test-address:
 
 coverage:
 	pytest --cov=src tests/
+
+lint:
+	ruff check .
+
+lint-fix:
+	ruff check --fix .

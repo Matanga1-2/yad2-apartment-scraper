@@ -1,15 +1,14 @@
-import os
 import base64
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import logging
-from typing import List
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
+import os
 import pickle
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from googleapiclient.discovery import build
+
 from src.mail_sender.init_credentials import init_gmail_credentials
+
 
 class EmailSender:
     def __init__(self):
@@ -66,6 +65,7 @@ class EmailSender:
             Exception: If email sending fails
         """
         try:
+            print("sending email...")
             service = build('gmail', 'v1', credentials=self.creds)
             message = self.create_message(subject, body)
             
@@ -76,7 +76,8 @@ class EmailSender:
             ).execute()
             
             logging.info(f"Email sent successfully: {subject} (Message ID: {sent_message['id']})")
-            
+            print("email sent successfully!")
+
         except Exception as e:
             logging.error(f"Failed to send email: {str(e)}", exc_info=True)
             raise 

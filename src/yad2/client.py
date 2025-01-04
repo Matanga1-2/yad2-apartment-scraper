@@ -1,15 +1,18 @@
 import logging
 from typing import List
-from selenium.webdriver.common.by import By
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
+from selenium.webdriver.common.by import By
+
+from src.mail_sender.sender import EmailSender
+
+from .auth import Yad2Auth
 from .browser import Browser
 from .feed_parser import FeedParser
-from .models import FeedItem, Contact
-from .selectors import FEED_CONTAINER, FEED_ITEM
-from .auth import Yad2Auth
 from .item_enricher import ItemEnricher
-from src.mail_sender.sender import EmailSender
+from .models import FeedItem
+from .selectors import FEED_CONTAINER, FEED_ITEM
+
 
 class Yad2Client:
     BASE_URL = "https://www.yad2.co.il"
@@ -29,27 +32,6 @@ class Yad2Client:
         self.logger = logging.getLogger(__name__)  # Just get the logger
         self.email_sender = EmailSender()
 
-    def open_search_page(self, timeout: int = 60) -> bool:
-        try:
-            self.logger.info(f"Accessing {self.REALESTATE_URL}")
-            self.browser.driver.get(self.REALESTATE_URL)
-
-            if self.browser.has_captcha():
-                self.logger.warning("Initial captcha check failed")
-                return False
-
-            self.browser.wait_for_element(By.CSS_SELECTOR, "[class^='map-page-layout_searchBox']", timeout=timeout)
-
-            if self.browser.has_captcha():
-                self.logger.warning("Post-wait captcha check failed")
-                return False
-
-            return True
-
-        except Exception as e:
-            self.logger.error(f"Failed to open search page: {str(e)}")
-            return False
-
     def get_feed_items(self, url: str) -> List[FeedItem]:
         try:
             # Ensure browser is initialized
@@ -58,6 +40,7 @@ class Yad2Client:
             
             # Navigate to the provided URL
             self.logger.info(f"Accessing {url}")
+            print("Opening URL...")
             self.browser.driver.get(url)
             
             # Wait for the feed container to be present and visible
@@ -66,6 +49,7 @@ class Yad2Client:
             
             # Check for captcha after loading
             if self.browser.has_captcha():
+                print("Captcha detected!")
                 self.logger.warning("Captcha detected while loading feed items")
                 return []
             
@@ -78,6 +62,7 @@ class Yad2Client:
             
             self.logger.info(f"Found {len(feed_items)} valid feed items (excluding yad1 listings)")
             
+            print("Processing feed items...")
             parsed_items = []
             for item in feed_items:
                 parsed_item = self.parser.parse_item(item)
@@ -87,11 +72,12 @@ class Yad2Client:
             
             if not parsed_items:
                 self.logger.warning(f"No valid feed items found at URL: {url}")
-            
+                print("No valid feed items found at URL")
             return parsed_items
 
         except Exception as e:
             self.logger.error(f"Failed to get feed items: {str(e)}")
+            print(f"Failed to get feed items: {str(e)}")
             return []
 
     def close(self):
@@ -112,16 +98,15 @@ class Yad2Client:
         Enriches a FeedItem with additional information from the listing page.
         Opens the item in a new tab and closes it when done.
         """
-        if not item:
-            self.logger.warning("Attempting to enrich None/invalid feed item")
-            return item
         return self.enricher.enrich_item(item)
+    
     def save_feed_item(self, item: FeedItem) -> bool:
         """
         Saves a feed item by clicking the save button.
         Returns True if successful, False otherwise.
         """
         try:
+            print("Saving item...")
             # More specific selector targeting the actual button
             button_selector = "button[data-testid='like-button']"
             
@@ -144,10 +129,12 @@ class Yad2Client:
                 self.browser.driver.execute_script("arguments[0].click();", save_button)
             
             self.browser.random_delay(1.0, 2.0)  # Wait for any animations
+            print("Item saved successfully!")
             return True
             
         except Exception as e:
             self.logger.error(f"Failed to save item {item.url}: {str(e)}")
+            print(f"Failed to save item {item.url}")
             return False
 
     def send_feed_item(self, item: FeedItem) -> None:

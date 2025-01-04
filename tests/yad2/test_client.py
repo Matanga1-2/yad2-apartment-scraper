@@ -1,9 +1,12 @@
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from selenium.webdriver.common.by import By
+
 from src.yad2.client import Yad2Client
 from src.yad2.models import FeedItem, Location, PropertySpecs
-from src.yad2.selectors import FEED_CONTAINER, FEED_ITEM
+from src.yad2.selectors import FEED_CONTAINER
+
 
 @pytest.fixture
 def mock_browser_class():
@@ -62,7 +65,7 @@ def test_open_search_page_success(mock_browser_class, mock_auth, _):
         By.CSS_SELECTOR, 
         "[class^='map-page-layout_searchBox']"
     )
-    assert result == True
+    assert result
 
 def test_get_feed_items_success(mock_browser_class, mock_parser, mock_auth, sample_url):
     """Test successful retrieval of feed items"""

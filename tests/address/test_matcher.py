@@ -1,6 +1,8 @@
 import json
 import logging
+
 import pytest
+
 from src.address import AddressMatcher
 from src.utils.logging_config import setup_logging
 

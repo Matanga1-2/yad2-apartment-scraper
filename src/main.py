@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 
-import sys
-from typing import Optional, List
-import signal
-from urllib.parse import urlparse
 import logging
 import os
+import signal
+import sys
+from typing import List, Optional
+from urllib.parse import urlparse
+
+from address import AddressMatcher
+from utils.console import prompt_yes_no
 from utils.logging_config import setup_logging
+from yad2.client import Yad2Client
+from yad2.models import FeedItem
 
 # Get the directory containing main.py
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,11 +19,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 # Construct path to supported_streets.json
 SUPPORTED_STREETS_PATH = os.path.join(project_root, 'consts', 'supported_streets.json')
-
-from yad2.client import Yad2Client
-from yad2.models import FeedItem
-from address import AddressMatcher
-from utils.console import prompt_yes_no
 
 def validate_yad2_url(url: str) -> bool:
     """Validate that the URL is a valid Yad2 URL."""
@@ -82,52 +82,46 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
         if not item:
             logging.warning(f"Empty item found at index {idx}")
             continue
+
         street = item.location.street
         match = address_matcher.is_street_allowed(street)
+        should_process = False
+        
+        print(f"\nItem {idx}/{len(items)}")
         
         if not match.is_allowed:
-            print(f"\nItem {idx}/{len(items)}")
-            logging.info(f"Street not supported: {street[::-1]}")
-            if not prompt_yes_no(f"Street {street[::-1]} isn't supported, skip?"):
-                logging.info(f"Processing unsupported street: {street[::-1]}")
-                process_item(item, client)
-            else:
+            logging.info(f"Street not supported: {street}")
+            should_process = not prompt_yes_no(f"Street {street} isn't supported, skip?")
+            if not should_process:
                 logging.info(f"Skipped unsupported street: {street[::-1]}")
                 print("Skipping...")
-                # Save the skipped item
-                if client.save_feed_item(item):
-                    logging.info(f"Successfully saved skipped item: {item.url}")
-                else:
-                    logging.error(f"Failed to save skipped item: {item.url}")
-                continue
+            else:
+                logging.info(f"Processing unsupported street: {street[::-1]}")
         
         elif match.constraint:
-            print(f"\nItem {idx}/{len(items)}")
             print(f"Street: {street[::-1]} ({match.neighborhood[::-1]})")
             print(f"Constraint: {match.constraint[::-1]}")
             logging.info(f"Street with constraints: {street[::-1]} - {match.constraint[::-1]}")
             
-            if prompt_yes_no(f"Street {street[::-1]} with constraints, please check. Process?"):
-                logging.info(f"Processing street with constraints: {street[::-1]}")
-                process_item(item, client)
-                # Save the processed item
-                if client.save_feed_item(item):
-                    logging.info(f"Successfully saved processed item: {item.url}")
-                else:
-                    logging.error(f"Failed to save processed item: {item.url}")
-            else:
+            should_process = prompt_yes_no(f"Street {street[::-1]} with constraints, please check. Process?")
+            if not should_process:
                 logging.info(f"Skipped street with constraints: {street[::-1]}")
                 print("Skipping...")
-                continue
         
         else:
+            should_process = True
             logging.info(f"Processing supported street: {street[::-1]}")
+        
+        if should_process:
             process_item(item, client)
-            # Save the processed item
-            if client.save_feed_item(item):
-                logging.info(f"Successfully saved processed item: {item.url}")
-            else:
-                logging.error(f"Failed to save processed item: {item.url}")
+            
+        # Save the item regardless of whether it was processed or skipped
+        if client.save_feed_item(item):
+            logging.info(f"Successfully saved {'processed' if should_process else 'skipped'} item: {item.url}")
+            print("Item saved successfully!")
+        else:
+            logging.error(f"Failed to save {'processed' if should_process else 'skipped'} item: {item.url}")
+            print("Failed to save item!")
 
 def main():
     try:
