@@ -27,50 +27,64 @@ class AddressMatcher:
             
             # Create a flat lookup dictionary for faster searching
             self.street_lookup = {}
-            for city in self.cities_data:
-                for neighborhood in city['neighborhoods']:
+            for city_data in self.cities_data:
+                city_name = city_data['city']
+                for neighborhood in city_data['neighborhoods']:
+                    neighborhood_name = neighborhood['neighborhood']
                     for street in neighborhood['streets']:
-                        key = self._normalize_street_name(street['name'])
+                        street_name = street['name']
+                        normalized_street = self._normalize_street_name(street_name)
+                        normalized_city = self._normalize_text(city_name)
+                        # Create a composite key of city and street
+                        key = f"{normalized_city}:{normalized_street}"
+                        
                         self.street_lookup[key] = {
-                            'name': street['name'],
+                            'name': street_name,
                             'constraint': street.get('constraint'),
-                            'neighborhood': neighborhood['neighborhood'],
-                            'city': city['city']
+                            'neighborhood': neighborhood_name,
+                            'city': city_name
                         }
         except Exception as e:
             self.logger.error(f"Failed to load streets file: {e}")
             raise
 
-    def _normalize_street_name(self, street_name: str) -> str:
-        """Normalize a street name for comparison."""
+    def _normalize_text(self, text: str) -> str:
+        """Normalize any text for comparison."""
         # Remove quotes and special characters
-        normalized = street_name.replace('"', '').replace('\'', '')
+        normalized = text.replace('"', '').replace('\'', '')
         # Remove Hebrew abbreviation marks
         normalized = normalized.replace('\"', '').replace('"', '')
-        return normalized.strip()
+        return normalized.strip()  # Remove just whitespace, no lower() for Hebrew
+
+    def _normalize_street_name(self, street_name: str) -> str:
+        """Normalize a street name for comparison."""
+        return self._normalize_text(street_name)
 
     def _find_best_match(self, street_name: str, city: str) -> Optional[dict]:
         """Find the best matching street using fuzzy matching within the specified city."""
         normalized_input = self._normalize_street_name(street_name)
+        normalized_city = self._normalize_text(city)
+        
+        # Create the composite key for exact match
+        exact_key = f"{normalized_city}:{normalized_input}"
+        
+        # Try exact match first
+        if exact_key in self.street_lookup:
+            return self.street_lookup[exact_key]
+
+        # If no exact match, try fuzzy matching
         best_ratio = 0
         best_match = None
 
-        # Filter streets by city first
-        city_streets = {
-            name: data for name, data in self.street_lookup.items() 
-            if data['city'].lower() == city.lower()
-        }
-
-        for lookup_name, street_data in city_streets.items():
-            # Try exact match first
-            if normalized_input == lookup_name:
-                return street_data
-
-            # Try fuzzy match
-            ratio = fuzz.ratio(normalized_input, lookup_name)
-            if ratio > best_ratio and ratio >= 85:  # Threshold of 85%
+        # Filter potential matches by city first
+        city_keys = [k for k in self.street_lookup.keys() if k.startswith(f"{normalized_city}:")]
+        
+        for key in city_keys:
+            _, street_part = key.split(":", 1)
+            ratio = fuzz.ratio(normalized_input, street_part)
+            if ratio > best_ratio and ratio >= 85:
                 best_ratio = ratio
-                best_match = street_data
+                best_match = self.street_lookup[key]
 
         return best_match
 
@@ -100,11 +114,6 @@ class AddressMatcher:
         if not match:
             self.logger.debug(f"Street not found: {street_name} in city: {city}")
             return StreetMatch(is_allowed=False)
-
-        self.logger.debug(
-            f"Street '{street_name}' matched to '{match['name']}' "
-            f"in {match['neighborhood']}, {match['city']}"
-        )
 
         return StreetMatch(
             is_allowed=True,
