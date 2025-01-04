@@ -18,7 +18,17 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # Get the parent directory (project root)
 project_root = os.path.dirname(current_dir)
 # Construct path to supported_streets.json
-SUPPORTED_STREETS_PATH = os.path.join(project_root, 'consts', 'supported_streets.json')
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+SUPPORTED_STREETS_PATH = get_resource_path(os.path.join('consts', 'supported_streets.json'))
 
 def validate_yad2_url(url: str) -> bool:
     """Validate that the URL is a valid Yad2 URL."""
