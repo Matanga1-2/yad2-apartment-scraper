@@ -5,7 +5,16 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
 from .models import FeedItem, Location, PropertySpecs
-from .selectors import *
+from .selectors import (
+    AGENCY_CONTAINER,
+    AGENCY_NAME,
+    ITEM_LINK,
+    LOCATION_INFO,
+    PRICE_CONTAINER,
+    PROPERTY_SPECS,
+    STREET_NAME,
+    TAGS_CONTAINER,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -65,7 +65,7 @@ def test_open_search_page_success(mock_browser_class, mock_auth, _):
         By.CSS_SELECTOR, 
         "[class^='map-page-layout_searchBox']"
     )
-    assert result == True
+    assert result
 
 def test_get_feed_items_success(mock_browser_class, mock_parser, mock_auth, sample_url):
     """Test successful retrieval of feed items"""
