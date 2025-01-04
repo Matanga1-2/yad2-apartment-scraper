@@ -81,7 +81,13 @@ class AddressMatcher:
             - neighborhood: The neighborhood name if the street is found
         """
         # Extract just the street name if address includes number
-        street_name = street_name.split()[0]
+        # Keep all parts except trailing numbers
+        parts = street_name.split()
+        # Work backwards from the end to find first non-number
+        for i in range(len(parts)-1, -1, -1):
+            if not parts[i].isdigit():
+                street_name = ' '.join(parts[:i+1])
+                break
 
         match = self._find_best_match(street_name)
         if not match:

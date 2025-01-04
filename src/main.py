@@ -60,7 +60,7 @@ def process_item(item: FeedItem, client: Yad2Client) -> None:
             enriched_item = client.enrich_feed_item(item)
             # Print the formatted listing
             print("\nFormatted listing:")
-            print(enriched_item.format_listing()[::-1])
+            print(enriched_item.format_listing())
             logging.info(f"Approved and enriched item: {item.url}")
             if prompt_yes_no("Do you approve the format?"):
                 client.send_feed_item(enriched_item)
@@ -93,24 +93,24 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
             logging.info(f"Street not supported: {street}")
             should_process = not prompt_yes_no(f"Street {street} isn't supported, skip?")
             if not should_process:
-                logging.info(f"Skipped unsupported street: {street[::-1]}")
+                logging.info(f"Skipped unsupported street: {street}")
                 print("Skipping...")
             else:
-                logging.info(f"Processing unsupported street: {street[::-1]}")
+                logging.info(f"Processing unsupported street: {street}")
         
         elif match.constraint:
-            print(f"Street: {street[::-1]} ({match.neighborhood[::-1]})")
-            print(f"Constraint: {match.constraint[::-1]}")
-            logging.info(f"Street with constraints: {street[::-1]} - {match.constraint[::-1]}")
+            print(f"Street: {street} ({match.neighborhood})")
+            print(f"Constraint: {match.constraint}")
+            logging.info(f"Street with constraints: {street} - {match.constraint}")
             
-            should_process = prompt_yes_no(f"Street {street[::-1]} with constraints, please check. Process?")
+            should_process = prompt_yes_no(f"Street {street} with constraints, please check. Process?")
             if not should_process:
-                logging.info(f"Skipped street with constraints: {street[::-1]}")
+                logging.info(f"Skipped street with constraints: {street}")
                 print("Skipping...")
         
         else:
             should_process = True
-            logging.info(f"Processing supported street: {street[::-1]}")
+            logging.info(f"Processing supported street: {street}")
         
         if should_process:
             process_item(item, client)
@@ -123,11 +123,29 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
             logging.error(f"Failed to save {'processed' if should_process else 'skipped'} item: {item.url}")
             print("Failed to save item!")
 
+def get_log_path():
+    """Get the appropriate log file path that works both in dev and compiled mode"""
+    try:
+        # When running as exe, use the user's app data directory
+        if getattr(sys, 'frozen', False):
+            # On Windows: %APPDATA%\Yad2Scraper
+            # On Linux/Mac: ~/.Yad2Scraper
+            app_dir = os.path.join(os.path.expanduser('~'), '.Yad2Scraper')
+            if not os.path.exists(app_dir):
+                os.makedirs(app_dir)
+            return os.path.join(app_dir, 'main.log')
+        else:
+            # In development, use the current directory
+            return os.path.join(current_dir, 'main.log')
+    except Exception as e:
+        # Fallback to current directory if there's any error
+        return 'main.log'
+
 def main():
     try:
         # Set up logging using the centralized configuration
         log_level = os.getenv('DEFAULT_LOG_LEVEL', 'WARNING')
-        log_file = os.path.join(current_dir, 'main.log')
+        log_file = get_log_path()
         setup_logging(
             level=getattr(logging, log_level),
             log_file=log_file
