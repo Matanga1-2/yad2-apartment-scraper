@@ -9,7 +9,7 @@ from .models import FeedItem, Contact
 from .selectors import FEED_CONTAINER, FEED_ITEM
 from .auth import Yad2Auth
 from .item_enricher import ItemEnricher
-from src.email.sender import EmailSender
+from src.mail_sender.sender import EmailSender
 
 class Yad2Client:
     BASE_URL = "https://www.yad2.co.il"
@@ -19,28 +19,15 @@ class Yad2Client:
         load_dotenv()  # Load environment variables from .env file
         self.browser = Browser(headless=headless)
         self.browser.init_driver()  # Initialize the driver here
+        if not self.browser.driver:
+            self.logger.error("Failed to initialize browser driver")
+            raise RuntimeError("Browser initialization failed")
         self.parser = FeedParser()
         self.auth = Yad2Auth(self.browser)
         self.enricher = ItemEnricher(self.browser)
         self.login()
-        self.logger = logging.getLogger(__name__)
-        self._setup_logging()
+        self.logger = logging.getLogger(__name__)  # Just get the logger
         self.email_sender = EmailSender()
-
-    def _setup_logging(self):
-        if not self.logger.handlers:
-            self.logger.setLevel(logging.INFO)
-            
-            handlers = [
-                logging.FileHandler('scraper.log'),
-                logging.StreamHandler()
-            ]
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-            for handler in handlers:
-                handler.setFormatter(formatter)
-                handler.setLevel(logging.INFO)
-                self.logger.addHandler(handler)
 
     def open_search_page(self, timeout: int = 60) -> bool:
         try:
@@ -98,6 +85,9 @@ class Yad2Client:
                     parsed_items.append(parsed_item)
                     self.logger.debug(f"Successfully parsed item {parsed_item.item_id}")
             
+            if not parsed_items:
+                self.logger.warning(f"No valid feed items found at URL: {url}")
+            
             return parsed_items
 
         except Exception as e:
@@ -122,6 +112,9 @@ class Yad2Client:
         Enriches a FeedItem with additional information from the listing page.
         Opens the item in a new tab and closes it when done.
         """
+        if not item:
+            self.logger.warning("Attempting to enrich None/invalid feed item")
+            return item
         return self.enricher.enrich_item(item)
     def save_feed_item(self, item: FeedItem) -> bool:
         """
@@ -167,6 +160,9 @@ class Yad2Client:
         Raises:
             Exception: If email sending fails
         """
+        if not item or not item.url:
+            self.logger.error("Attempting to send invalid feed item")
+            raise ValueError("Invalid feed item")
         try:
             title = item.format_listing()
             body = f"{item.url}"

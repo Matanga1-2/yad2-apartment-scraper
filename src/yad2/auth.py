@@ -12,7 +12,15 @@ class Yad2Auth:
 
     def login(self) -> bool:
         try:
+
+            if not os.getenv('YAD2_EMAIL') or not os.getenv('YAD2_PASSWORD'):
+                self.logger.error("Missing YAD2_EMAIL or YAD2_PASSWORD environment variables")
+                return False 
+            
             self.logger.info("Attempting to login to Yad2")        
+            if not self.browser.driver:
+                self.logger.error("Browser driver not initialized")
+                return False
             self.browser.driver.get(self.LOGIN_URL)
             
             # Wait and fill email

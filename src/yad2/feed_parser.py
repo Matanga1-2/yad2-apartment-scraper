@@ -36,13 +36,17 @@ class FeedParser:
             price_text = price_elem.text.replace('₪', '').replace(',', '').strip()
             return int(price_text)
         except Exception as e:
-            logger.warning(f"Failed to extract price: {str(e)}")
+            logger.warning(f"Could not parse price value from element: {str(e)}")
             return None
 
     def _extract_location(self, element: WebElement) -> Location:
-        street = element.find_element(By.CSS_SELECTOR, STREET_NAME).text.strip()
-        location_info = element.find_element(By.CSS_SELECTOR, LOCATION_INFO).text
-        parts = [p.strip() for p in location_info.split(',')]
+        try:
+            street = element.find_element(By.CSS_SELECTOR, STREET_NAME).text.strip()
+            location_info = element.find_element(By.CSS_SELECTOR, LOCATION_INFO).text
+            parts = [p.strip() for p in location_info.split(',')]
+        except Exception as e:
+            logger.error(f"Failed to extract location data: {str(e)}")
+            raise
         
         return Location(
             street=street,
@@ -88,8 +92,12 @@ class FeedParser:
         if not self._is_agency(element):
             return None
         try:
-            return element.find_element(By.CSS_SELECTOR, AGENCY_NAME).text.strip()
+            name = element.find_element(By.CSS_SELECTOR, AGENCY_NAME).text.strip()
+            if not name:
+                logger.warning("Agency listing found but name is empty")
+            return name
         except Exception:
+            logger.warning("Agency listing found but failed to extract name")
             return None
 
     def _extract_tags(self, element: WebElement) -> List[str]:
