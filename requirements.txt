@@ -16,7 +16,7 @@ certifi==2024.12.14
     #   selenium
 charset-normalizer==3.4.1
     # via requests
-fuzzywuzzy==0.18.0
+fuzzywuzzy>=0.18.0
     # via -r requirements.in
 google-api-core==2.24.0
     # via google-api-python-client
@@ -82,7 +82,7 @@ python-dotenv==1.0.1
     # via
     #   -r requirements.in
     #   webdriver-manager
-python-levenshtein==0.26.1
+python-levenshtein>=0.12.2
     # via -r requirements.in
 rapidfuzz==3.11.0
     # via levenshtein

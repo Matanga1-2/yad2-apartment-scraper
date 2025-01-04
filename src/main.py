@@ -53,7 +53,6 @@ def signal_handler(*_):
 
 def process_item(item: FeedItem, client: Yad2Client) -> None:
     """Process a single feed item."""
-    print(f"\nItem link: {item.url}")
     if prompt_yes_no("Do you approve to send?"):
         try:
             # Enrich the item with additional details
@@ -88,6 +87,7 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
         should_process = False
         
         print(f"\nItem {idx}/{len(items)}")
+        print(f"\nItem link: {item.url}")
         
         if not match.is_allowed:
             logging.info(f"Street not supported: {street}")
@@ -110,18 +110,19 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
         
         else:
             should_process = True
+            print(f"Street {street} is supported")
             logging.info(f"Processing supported street: {street}")
         
         if should_process:
             process_item(item, client)
             
         # Save the item regardless of whether it was processed or skipped
-        if client.save_feed_item(item):
-            logging.info(f"Successfully saved {'processed' if should_process else 'skipped'} item: {item.url}")
-            print("Item saved successfully!")
-        else:
-            logging.error(f"Failed to save {'processed' if should_process else 'skipped'} item: {item.url}")
-            print("Failed to save item!")
+        # if client.save_feed_item(item):
+        #     logging.info(f"Successfully saved {'processed' if should_process else 'skipped'} item: {item.url}")
+        #     print("Item saved successfully!")
+        # else:
+        #    logging.error(f"Failed to save {'processed' if should_process else 'skipped'} item: {item.url}")
+        #    print("Failed to save item!")
 
 def get_log_path():
     """Get the appropriate log file path that works both in dev and compiled mode"""
@@ -140,6 +141,77 @@ def get_log_path():
     except Exception as e:
         # Fallback to current directory if there's any error
         return 'main.log'
+
+def process_urls(client: Yad2Client, address_matcher: AddressMatcher) -> None:
+    """Process multiple URLs using the same client instance."""
+    feed_items = None
+    
+    while True:
+        print("\nChoose an action:")
+        print("1. Enter new URL")
+        print("2. Get feed items")
+        print("3. Process current feed")
+        print("4. Exit")
+        
+        choice = input("\nEnter your choice (1-4): ").strip()
+        
+        try:
+            if choice == '1':
+                url = get_valid_url()
+                if not url:
+                    logging.info("No URL provided")
+                    continue
+                    
+                logging.info(f"Navigating to URL: {url}")
+                print("Navigating to URL...")
+                client.navigate_to(url)
+                feed_items = None  # Reset feed items when new URL is loaded
+                
+            elif choice == '2':
+                print("Fetching feed items...")
+                feed_items = client.get_feed_items()
+                if not feed_items:
+                    logging.warning("No feed items found")
+                    print("No feed items found")
+                    continue
+                
+                # Calculate statistics
+                total_items = len(feed_items)
+                saved_items = sum(1 for item in feed_items if item.is_saved)
+                new_items = total_items - saved_items
+                
+                logging.info(f"Found {total_items} items ({new_items} new, {saved_items} saved)")
+                print(f"\nFound {total_items} items:")
+                print(f"  • {new_items} new listings")
+                print(f"  • {saved_items} saved listings (will be skipped)")
+                
+            elif choice == '3':
+                if feed_items is None:
+                    print("No feed items available. Please get feed items first.")
+                    continue
+                    
+                # Filter out saved items before processing
+                items_to_process = [item for item in feed_items if not item.is_saved]
+                
+                if prompt_yes_no("\nProceed with processing these items?"):
+                    process_feed_items(items_to_process, address_matcher, client)
+                    if not prompt_yes_no("\nContinue with current URL?"):
+                        break
+                else:
+                    logging.info("User chose not to process items")
+                
+            elif choice == '4':
+                print("Goodbye!")
+                break
+                
+            else:
+                print("Invalid choice. Please enter a number between 1 and 4.")
+                
+        except Exception as e:
+            logging.error(f"Error: {str(e)}", exc_info=True)
+            print(f"Error: {str(e)}")
+            if not prompt_yes_no("\nWould you like to continue?"):
+                break
 
 def main():
     try:
@@ -164,59 +236,28 @@ def main():
     print("Yad2 Apartment Scraper")
     print("=====================")
     
-    try:
-        url = get_valid_url()
-        if not url:
-            logging.info("No URL provided, exiting")
-            print("Exiting...")
-            return 0
-    except Exception as e:
-        logging.error(f"Error getting URL: {str(e)}")
-        return 1
-        
     client = None
     try:
+        # Initialize client and address matcher once
         client = Yad2Client(headless=False)
         address_matcher = AddressMatcher(SUPPORTED_STREETS_PATH)
         logging.debug("Initialized client and address matcher")
-
-        print("Fetching feed items...")
-        feed_items = client.get_feed_items(url)
-        if not feed_items:
-            logging.warning("No feed items found for the given URL")
-            return 0
         
-        # Calculate statistics
-        total_items = len(feed_items)
-        saved_items = sum(1 for item in feed_items if item.is_saved)
-        new_items = total_items - saved_items
-        
-        logging.info(f"Found {total_items} items ({new_items} new, {saved_items} saved)")
-        print(f"\nFound {total_items} items:")
-        print(f"  • {new_items} new listings")
-        print(f"  • {saved_items} saved listings (will be skipped)")
-        
-        # Filter out saved items before processing
-        items_to_process = [item for item in feed_items if not item.is_saved]
-        
-        if prompt_yes_no("\nProceed with processing these items?"):
-            process_feed_items(items_to_process, address_matcher, client)
-        else:
-            logging.info("User chose not to process items")
-        
-        return 0
+        # Process URLs in a loop while keeping the client alive
+        process_urls(client, address_matcher)
         
     except Exception as e:
-        logging.error(f"Fatal error in main: {str(e)}", exc_info=True)
-        print(f"Error: {str(e)}")
+        logging.error(f"Fatal error: {str(e)}", exc_info=True)
+        print(f"Fatal error: {str(e)}")
         return 1
-    
     finally:
         if client:
             try:
                 client.close()
             except Exception as e:
                 logging.error(f"Error closing client: {str(e)}")
+    
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main()) 
