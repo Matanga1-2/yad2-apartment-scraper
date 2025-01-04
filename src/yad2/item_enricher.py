@@ -7,13 +7,6 @@ class ItemEnricher:
     def __init__(self, browser: Browser):
         self.browser = browser
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-        
-        # Add a handler if none exists
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-            self.logger.addHandler(handler)
 
     def enrich_item(self, item: FeedItem) -> FeedItem:
         """
@@ -25,7 +18,12 @@ class ItemEnricher:
         
         try:
             # Open new tab and switch to it
-            self.browser.driver.switch_to.new_window('tab')
+            try:
+                self.browser.driver.switch_to.new_window('tab')
+            except Exception as e:
+                self.logger.error(f"Failed to open new tab for item {item.url}: {str(e)}")
+                return item
+            
             self.browser.driver.get(item.url)
             
             self._extract_floor_info(item)
@@ -63,6 +61,9 @@ class ItemEnricher:
             
             if floor_element:
                 floor_text = floor_element.text  # Should now get "3/4"
+                if not floor_text or '/' not in floor_text:
+                    self.logger.warning(f"Invalid floor format '{floor_text}' for item {item.url}")
+                    return
                 current_floor, total_floors = map(int, floor_text.split('/'))
                 item.specs.features.current_floor = current_floor
                 item.specs.features.total_floors = total_floors
@@ -80,6 +81,9 @@ class ItemEnricher:
                 "//section[@data-testid='in-property']"
             )
             feature_items = features_section.find_elements(By.CSS_SELECTOR, '[data-testid="in-property-item"]')
+            
+            if not feature_items:
+                self.logger.warning(f"No features found for item {item.url}")
             
             feature_map = {
                 "מעלית": "has_elevator",
@@ -135,7 +139,7 @@ class ItemEnricher:
             item.contact = Contact(name=name, phone=phone)
         except Exception as e:
             self.logger.error(
-                f"Failed to extract contact info for item {item.url}: {str(e)}",
-                exc_info=True
+                f"Failed to extract contact info - Name: {name if 'name' in locals() else 'N/A'}, "
+                f"Phone: {phone if 'phone' in locals() else 'N/A'} - Error: {str(e)}"
             )
             pass 

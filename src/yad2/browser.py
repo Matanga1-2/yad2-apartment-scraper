@@ -13,25 +13,7 @@ class Browser:
     def __init__(self, headless: bool = True):
         self.headless = headless
         self.driver = None
-        Browser._setup_logging()
         self.logger = logging.getLogger(__name__)
-
-    @staticmethod
-    def _setup_logging():
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.INFO)
-
-        if not logger.handlers:
-            handlers = [
-                logging.FileHandler('scraper.log'),
-                logging.StreamHandler()
-            ]
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-            for handler in handlers:
-                handler.setFormatter(formatter)
-                handler.setLevel(logging.INFO)
-                logger.addHandler(handler)
 
     def init_driver(self) -> webdriver.Chrome:
         try:

@@ -2,19 +2,12 @@ import json
 import logging
 import pytest
 from src.address import AddressMatcher
+from src.utils.logging_config import setup_logging
 
-# Setup logger at module level
+# Use the centralized logging configuration
+setup_logging(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
-# Only add handler if none exists to prevent duplicate handlers
-if not logger.handlers:
-    console_handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(name)s - %(message)s')
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.INFO)
-    logger.addHandler(console_handler)
-    
 @pytest.fixture
 def matcher(tmp_path):
     # Create a temporary test data file
@@ -26,7 +19,8 @@ def matcher(tmp_path):
                     "neighborhood": "Test Neighborhood",
                     "streets": [
                         {"name": "אברמוביץ"},
-                        {"name": "ביתר", "constraint": "זוגיים בלבד"}
+                        {"name": "ביתר", "constraint": "זוגיים בלבד"},
+                        {"name": "צבי הירש קלישר"}
                     ]
                 }
             ]
@@ -62,3 +56,10 @@ def test_fuzzy_match(matcher):
     logger.info(f"Tried matching \"אברמוביץ'\" with file, result is: {result}")
     assert result.is_allowed
     assert result.neighborhood == "Test Neighborhood"
+
+def test_street_with_number(matcher):
+    result = matcher.is_street_allowed("צבי הירש קלישר 65")
+    logger.info(f"Tried matching \"צבי הירש קלישר 65\" with file, result is: {result}")
+    assert result.is_allowed
+    assert result.neighborhood == "Test Neighborhood"
+    assert result.constraint is None

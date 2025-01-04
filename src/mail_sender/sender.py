@@ -9,9 +9,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 import pickle
-from src.email.init_credentials import init_gmail_credentials
-
-logger = logging.getLogger(__name__)
+from src.mail_sender.init_credentials import init_gmail_credentials
 
 class EmailSender:
     def __init__(self):
@@ -19,6 +17,7 @@ class EmailSender:
         self.cc_recipients = os.getenv("EMAIL_CC_RECIPIENTS", "").split(",")
         
         if not self.recipients:
+            logging.error("No recipients specified in EMAIL_RECIPIENTS environment variable")
             raise ValueError("No recipients specified in EMAIL_RECIPIENTS")
 
         # If modifying these scopes, delete the token.pickle file
@@ -34,8 +33,9 @@ class EmailSender:
 
         # Initialize credentials using the init_credentials function
         if not os.path.exists(token_path):
-            logger.info("No existing credentials found. Initializing new credentials...")
+            logging.warning("No existing credentials found. Will attempt to initialize new credentials...")
             if not init_gmail_credentials():
+                logging.error("Failed to initialize Gmail credentials")
                 raise RuntimeError("Failed to initialize Gmail credentials.")
         
         # Load the credentials from token.pickle
@@ -75,8 +75,8 @@ class EmailSender:
                 body=message
             ).execute()
             
-            logger.info(f"Email sent successfully: {subject} (Message ID: {sent_message['id']})")
+            logging.info(f"Email sent successfully: {subject} (Message ID: {sent_message['id']})")
             
         except Exception as e:
-            logger.error(f"Failed to send email: {str(e)}")
+            logging.error(f"Failed to send email: {str(e)}", exc_info=True)
             raise 

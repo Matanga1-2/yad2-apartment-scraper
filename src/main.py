@@ -6,6 +6,7 @@ import signal
 from urllib.parse import urlparse
 import logging
 import os
+from utils.logging_config import setup_logging
 
 # Get the directory containing main.py
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +25,8 @@ def validate_yad2_url(url: str) -> bool:
     try:
         parsed = urlparse(url)
         return parsed.netloc == "www.yad2.co.il" and parsed.scheme == "https"
-    except Exception:
+    except Exception as e:
+        logging.error(f"Failed to validate URL: {str(e)}")
         return False
 
 def get_valid_url() -> Optional[str]:
@@ -41,6 +43,7 @@ def get_valid_url() -> Optional[str]:
             else:
                 print("Error: Please enter a valid Yad2 URL (https://www.yad2.co.il/...)")
         except EOFError:
+            logging.warning("User terminated input with EOF")
             return None
 
 def signal_handler(*_):
@@ -75,6 +78,10 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
     print(f"\nProcessing {len(items)} items...")
     
     for idx, item in enumerate(items, 1):
+        logging.debug(f"Processing item {idx}/{len(items)}")
+        if not item:
+            logging.warning(f"Empty item found at index {idx}")
+            continue
         street = item.location.street
         match = address_matcher.is_street_allowed(street)
         
@@ -123,39 +130,56 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
                 logging.error(f"Failed to save processed item: {item.url}")
 
 def main():
-    # Set up logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler('scraper.log'),
-            logging.StreamHandler()
-        ]
-    )
-    
-    # Set up signal handler for clean interrupts
-    signal.signal(signal.SIGINT, signal_handler)
+    try:
+        # Set up logging using the centralized configuration
+        log_level = os.getenv('DEFAULT_LOG_LEVEL', 'WARNING')
+        log_file = os.path.join(current_dir, 'main.log')
+        setup_logging(
+            level=getattr(logging, log_level),
+            log_file=log_file
+        )
+    except Exception as e:
+        print(f"Failed to setup logging: {str(e)}")
+        return 1
+
+    try:
+        # Set up signal handler for clean interrupts
+        signal.signal(signal.SIGINT, signal_handler)
+    except Exception as e:
+        logging.error(f"Failed to setup signal handler: {str(e)}")
+        return 1
     
     print("Yad2 Apartment Scraper")
     print("=====================")
     
-    url = get_valid_url()
-    if not url:
-        print("Exiting...")
-        return 0
+    try:
+        url = get_valid_url()
+        if not url:
+            logging.info("No URL provided, exiting")
+            print("Exiting...")
+            return 0
+    except Exception as e:
+        logging.error(f"Error getting URL: {str(e)}")
+        return 1
         
+    client = None
     try:
         client = Yad2Client(headless=False)
         address_matcher = AddressMatcher(SUPPORTED_STREETS_PATH)
+        logging.debug("Initialized client and address matcher")
 
         print("Fetching feed items...")
         feed_items = client.get_feed_items(url)
+        if not feed_items:
+            logging.warning("No feed items found for the given URL")
+            return 0
         
         # Calculate statistics
         total_items = len(feed_items)
         saved_items = sum(1 for item in feed_items if item.is_saved)
         new_items = total_items - saved_items
         
+        logging.info(f"Found {total_items} items ({new_items} new, {saved_items} saved)")
         print(f"\nFound {total_items} items:")
         print(f"  • {new_items} new listings")
         print(f"  • {saved_items} saved listings (will be skipped)")
@@ -165,16 +189,22 @@ def main():
         
         if prompt_yes_no("\nProceed with processing these items?"):
             process_feed_items(items_to_process, address_matcher, client)
+        else:
+            logging.info("User chose not to process items")
         
         return 0
         
     except Exception as e:
+        logging.error(f"Fatal error in main: {str(e)}", exc_info=True)
         print(f"Error: {str(e)}")
         return 1
     
     finally:
-        if 'client' in locals():
-            client.close()
+        if client:
+            try:
+                client.close()
+            except Exception as e:
+                logging.error(f"Error closing client: {str(e)}")
 
 if __name__ == "__main__":
     sys.exit(main()) 

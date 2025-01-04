@@ -1,12 +1,12 @@
 import os
 import pytest
-from src.email.sender import EmailSender
+from src.mail_sender.sender import EmailSender
 
 @pytest.fixture
 def setup_env_vars(monkeypatch):
     """Fixture to set up environment variables for testing."""
-    monkeypatch.setenv("EMAIL_RECIPIENTS", "matangrady@gmail.com")
-    monkeypatch.setenv("EMAIL_CC_RECIPIENTS", "matangrady@gmail.com")
+    monkeypatch.setenv("EMAIL_RECIPIENTS", "test@example.com")
+    monkeypatch.setenv("EMAIL_CC_RECIPIENTS", "test2@example.com")
 
 def test_send_email(setup_env_vars):
     """

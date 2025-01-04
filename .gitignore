@@ -5,9 +5,9 @@ consts/supported_streets.json
 /.ruff_cache
 
 # Credentials and secrets
-src/email/client_secret.json
-src/email/token.pickle
-src/email/gmail_auth.log
+src/mail_sender/client_secret.json
+src/mail_sender/token.pickle
+src/mail_sender/gmail_auth.log
 
 
 # Byte-compiled / optimized / DLL files
