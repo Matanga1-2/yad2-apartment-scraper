@@ -195,7 +195,7 @@ def process_urls(client: Yad2Client, address_matcher: AddressMatcher) -> None:
                 
                 if prompt_yes_no("\nProceed with processing these items?"):
                     process_feed_items(items_to_process, address_matcher, client)
-                    if not prompt_yes_no("\nContinue with current URL?"):
+                    if not prompt_yes_no("\nContinue to the next action?"):
                         break
                 else:
                     logging.info("User chose not to process items")

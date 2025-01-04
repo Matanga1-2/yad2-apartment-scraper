@@ -32,7 +32,8 @@ class Yad2Client:
         self.logger = logging.getLogger(__name__)  # Just get the logger
         self.email_sender = EmailSender()
 
-    def get_feed_items(self, url: str) -> List[FeedItem]:
+    def navigate_to(self, url: str) -> bool:
+        """Navigate to the specified URL and ensure the page loads properly."""
         try:
             # Ensure browser is initialized
             if not self.browser.driver:
@@ -51,8 +52,18 @@ class Yad2Client:
             if self.browser.has_captcha():
                 print("Captcha detected!")
                 self.logger.warning("Captcha detected while loading feed items")
-                return []
-            
+                return False
+                
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to navigate to URL: {str(e)}")
+            print(f"Failed to navigate to URL: {str(e)}")
+            return False
+
+    def get_feed_items(self) -> List[FeedItem]:
+        """Get feed items from the current page."""
+        try:
             feed_container = self.browser.driver.find_element(By.CSS_SELECTOR, FEED_CONTAINER)
             # Filter out yad1 listings when getting feed items
             feed_items = [
@@ -71,8 +82,8 @@ class Yad2Client:
                     self.logger.debug(f"Successfully parsed item {parsed_item.item_id}")
             
             if not parsed_items:
-                self.logger.warning(f"No valid feed items found at URL: {url}")
-                print("No valid feed items found at URL")
+                self.logger.warning("No valid feed items found on current page")
+                print("No valid feed items found on current page")
             return parsed_items
 
         except Exception as e:

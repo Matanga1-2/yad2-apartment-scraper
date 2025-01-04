@@ -11,6 +11,7 @@ class StreetMatch:
     is_allowed: bool
     constraint: Optional[str] = None
     neighborhood: Optional[str] = None
+    city: Optional[str] = None
 
 class AddressMatcher:
     def __init__(self, json_file_path: str):
@@ -48,13 +49,19 @@ class AddressMatcher:
         normalized = normalized.replace('\"', '').replace('"', '')
         return normalized.strip()
 
-    def _find_best_match(self, street_name: str) -> Optional[dict]:
-        """Find the best matching street using fuzzy matching."""
+    def _find_best_match(self, street_name: str, city: str) -> Optional[dict]:
+        """Find the best matching street using fuzzy matching within the specified city."""
         normalized_input = self._normalize_street_name(street_name)
         best_ratio = 0
         best_match = None
 
-        for lookup_name, street_data in self.street_lookup.items():
+        # Filter streets by city first
+        city_streets = {
+            name: data for name, data in self.street_lookup.items() 
+            if data['city'].lower() == city.lower()
+        }
+
+        for lookup_name, street_data in city_streets.items():
             # Try exact match first
             if normalized_input == lookup_name:
                 return street_data
@@ -67,31 +74,31 @@ class AddressMatcher:
 
         return best_match
 
-    def is_street_allowed(self, street_name: str) -> StreetMatch:
+    def is_street_allowed(self, street_name: str, city: str) -> StreetMatch:
         """
-        Check if a street is in the allowed list.
+        Check if a street is in the allowed list for the specified city.
         
         Args:
             street_name: The name of the street to check
+            city: The city to check the street in
 
         Returns:
             StreetMatch object containing:
             - is_allowed: Boolean indicating if the street is allowed
             - constraint: Optional string with any constraints on the street
             - neighborhood: The neighborhood name if the street is found
+            - city: The city name if the street is found
         """
         # Extract just the street name if address includes number
-        # Keep all parts except trailing numbers
         parts = street_name.split()
-        # Work backwards from the end to find first non-number
         for i in range(len(parts)-1, -1, -1):
             if not parts[i].isdigit():
                 street_name = ' '.join(parts[:i+1])
                 break
 
-        match = self._find_best_match(street_name)
+        match = self._find_best_match(street_name, city)
         if not match:
-            self.logger.debug(f"Street not found: {street_name}")
+            self.logger.debug(f"Street not found: {street_name} in city: {city}")
             return StreetMatch(is_allowed=False)
 
         self.logger.debug(
@@ -102,5 +109,6 @@ class AddressMatcher:
         return StreetMatch(
             is_allowed=True,
             constraint=match.get('constraint'),
-            neighborhood=match['neighborhood']
+            neighborhood=match['neighborhood'],
+            city=match['city']
         ) 
