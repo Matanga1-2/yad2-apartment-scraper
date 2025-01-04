@@ -17,7 +17,8 @@ class Yad2Auth:
                 self.logger.error("Missing YAD2_EMAIL or YAD2_PASSWORD environment variables")
                 return False 
             
-            self.logger.info("Attempting to login to Yad2")        
+            self.logger.info("Attempting to login to Yad2")  
+            print("login to Yad2...")      
             if not self.browser.driver:
                 self.logger.error("Browser driver not initialized")
                 return False
@@ -47,8 +48,10 @@ class Yad2Auth:
                 return False
                 
             self.logger.info("Successfully logged in to Yad2")
+            print("Login successful!")
             return True
             
         except Exception as e:
             self.logger.error(f"Login failed: {str(e)}")
+            print("Login failed!!")
             return False 
