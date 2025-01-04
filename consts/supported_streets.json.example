@@ -1,0 +1,34 @@
+[
+    {
+        "city": "תל אביב",
+        "neighborhoods": [
+            {
+                "neighborhood": "רמת אביב",
+                "streets": [
+                    { "name": "אינשטיין" },
+                    { 
+                        "name": "ברודצקי",
+                        "constraint": "צפונית לרחוב אינשטיין"
+                    },
+                    { "name": "חיים לבנון" }
+                ]
+            }
+        ]
+    },
+    {
+        "city": "חיפה", 
+        "neighborhoods": [
+            {
+                "neighborhood": "כרמל",
+                "streets": [
+                    { "name": "מוריה" },
+                    { "name": "יפה נוף" },
+                    {
+                        "name": "דרך הים",
+                        "constraint": "דרומית לרחוב מוריה"
+                    }
+                ]
+            }
+        ]
+    }
+]

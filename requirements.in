@@ -1,0 +1,21 @@
+# Web automation
+selenium
+webdriver-manager
+
+# Google API packages (for email functionality)
+google-auth
+google-auth-oauthlib
+google-api-python-client
+
+# Text matching
+fuzzywuzzy
+python-Levenshtein  # Optional: Makes fuzzywuzzy faster
+
+# Environment variables
+python-dotenv
+
+# Testing
+pytest
+
+# Optional: Development tools (remove if not needed)
+ruff  # if you're using it for linting

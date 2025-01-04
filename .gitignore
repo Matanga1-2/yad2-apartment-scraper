@@ -2,6 +2,13 @@
 .idea
 .DS_Store
 consts/supported_streets.json
+/.ruff_cache
+
+# Credentials and secrets
+src/email/client_secret.json
+src/email/token.pickle
+src/email/gmail_auth.log
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

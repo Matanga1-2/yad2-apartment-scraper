@@ -52,12 +52,24 @@ class Browser:
     def wait_for_element(self, by: By, value: str, timeout: int = 10):
         """Wait for element to be present and visible"""
         try:
+            self.logger.debug(f"Attempting to wait for element: {by}={value}")
+            # Try direct find first to verify element exists
+            direct_find = self.driver.find_elements(by, value)
+            self.logger.debug(f"Direct find returned {len(direct_find)} elements")
+            
+            if len(direct_find) > 0:
+                self.logger.debug("Element found directly without waiting")
+                return direct_find[0]
+                
             element = WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located((by, value))
             )
+            self.logger.debug("Element found through wait_for_element")
             return element
         except Exception as e:
             self.logger.error(f"Element not found: {by}={value}, {str(e)}")
+            self.logger.error(f"Current URL: {self.driver.current_url}")
+            self.logger.error(f"Page source snippet: {self.driver.page_source[:500]}")
             raise
 
     @staticmethod
@@ -92,12 +104,31 @@ class Browser:
 
     def safe_click(self, element):
         """Attempt to click with retries and waits"""
-        try:
-            element.click()
-        except Exception as e:
-            self.logger.error(f"Click failed: {str(e)}")
-            raise
+        max_attempts = 2
+        for attempt in range(max_attempts):
+            try:
+                # Try regular click first
+                element.click()
+                return
+            except Exception as e:
+                if attempt == max_attempts - 1:  # Last attempt
+                    # Try JavaScript click as last resort
+                    try:
+                        self.driver.execute_script("arguments[0].click();", element)
+                        return
+                    except Exception as js_e:
+                        self.logger.error(f"Both regular and JS clicks failed: {str(e)}, {str(js_e)}")
+                        raise
+                self.random_delay(0.2, 0.5)  # Short delay between attempts
 
     def has_captcha(self) -> bool:
         """Check if page contains a Captcha challenge"""
         return "g-recaptcha" in self.driver.page_source if self.driver else False
+
+    def inject_html(self, html_content: str):
+        """Safely inject HTML content into the page for testing"""
+        self.driver.get("about:blank")
+        # Escape any script-breaking characters
+        safe_html = html_content.replace("`", "\\`").replace("$", "\\$")
+        self.driver.execute_script(f"document.write(`{safe_html}`)")
+        self.driver.execute_script("document.close()")
