@@ -14,3 +14,7 @@ lint:
 
 lint-fix:
 	ruff check --fix .
+
+.PHONY: build-exe
+build-exe:
+	python build_exe.py
