@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import sys
-from typing import Optional, List
-import signal
-from urllib.parse import urlparse
 import logging
 import os
+import signal
+import sys
+from typing import List, Optional
+from urllib.parse import urlparse
+
 from utils.logging_config import setup_logging
 
 # Get the directory containing main.py
@@ -15,10 +16,11 @@ project_root = os.path.dirname(current_dir)
 # Construct path to supported_streets.json
 SUPPORTED_STREETS_PATH = os.path.join(project_root, 'consts', 'supported_streets.json')
 
-from yad2.client import Yad2Client
-from yad2.models import FeedItem
 from address import AddressMatcher
 from utils.console import prompt_yes_no
+from yad2.client import Yad2Client
+from yad2.models import FeedItem
+
 
 def validate_yad2_url(url: str) -> bool:
     """Validate that the URL is a valid Yad2 URL."""

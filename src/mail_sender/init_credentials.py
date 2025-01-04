@@ -1,8 +1,11 @@
-import os
-from google_auth_oauthlib.flow import InstalledAppFlow
-import pickle
 import logging
+import os
+import pickle
+
+from google_auth_oauthlib.flow import InstalledAppFlow
+
 from src.utils.console import prompt_yes_no
+
 
 def _setup_logging():
     logger = logging.getLogger(__name__)

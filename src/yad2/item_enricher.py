@@ -1,7 +1,10 @@
 import logging
+
 from selenium.webdriver.common.by import By
-from .models import FeedItem, Contact
+
 from .browser import Browser
+from .models import Contact, FeedItem
+
 
 class ItemEnricher:
     def __init__(self, browser: Browser):

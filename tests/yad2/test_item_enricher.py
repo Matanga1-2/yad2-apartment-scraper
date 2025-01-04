@@ -1,12 +1,12 @@
 import logging
-import pytest
 from pathlib import Path
+
+import pytest
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from src.yad2.item_enricher import ItemEnricher
-from src.yad2.models import FeedItem, PropertySpecs, PropertyFeatures, Location
+
 from src.yad2.browser import Browser
-import urllib.parse
+from src.yad2.item_enricher import ItemEnricher
+from src.yad2.models import FeedItem, Location, PropertyFeatures, PropertySpecs
 
 # Reuse the existing logger setup
 logger = logging.getLogger(__name__)

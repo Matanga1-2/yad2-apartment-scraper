@@ -1,7 +1,8 @@
 import logging
-from typing import Optional, List
-from selenium.webdriver.remote.webelement import WebElement
+from typing import List, Optional
+
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 
 from .models import FeedItem, Location, PropertySpecs
 from .selectors import *
@@ -78,7 +79,7 @@ class FeedParser:
             # Check number of classes - saved has 1, unsaved has 2
             classes = icon_div.get_attribute('class').split()
             return len(classes) == 1
-        except Exception as e:
+        except Exception:
             return False
 
     def _is_agency(self, element: WebElement) -> bool:

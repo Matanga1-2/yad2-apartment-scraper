@@ -1,9 +1,12 @@
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from selenium.webdriver.common.by import By
+
 from src.yad2.client import Yad2Client
 from src.yad2.models import FeedItem, Location, PropertySpecs
-from src.yad2.selectors import FEED_CONTAINER, FEED_ITEM
+from src.yad2.selectors import FEED_CONTAINER
+
 
 @pytest.fixture
 def mock_browser_class():

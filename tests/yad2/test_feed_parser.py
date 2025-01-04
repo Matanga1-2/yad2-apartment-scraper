@@ -1,8 +1,10 @@
 import logging
-import pytest
 from pathlib import Path
+
+import pytest
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+
 from src.yad2.feed_parser import FeedParser
 
 # Setup logger

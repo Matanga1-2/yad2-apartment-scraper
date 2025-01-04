@@ -1,15 +1,14 @@
-import os
 import base64
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import logging
-from typing import List
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
+import os
 import pickle
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from googleapiclient.discovery import build
+
 from src.mail_sender.init_credentials import init_gmail_credentials
+
 
 class EmailSender:
     def __init__(self):

@@ -1,4 +1,5 @@
 import logging
+
 from src.yad2.models import FeedItem, Location, PropertySpecs
 
 # Setup logger

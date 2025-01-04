@@ -1,6 +1,7 @@
-import os
 import pytest
+
 from src.mail_sender.sender import EmailSender
+
 
 @pytest.fixture
 def setup_env_vars(monkeypatch):

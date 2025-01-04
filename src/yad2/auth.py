@@ -1,7 +1,10 @@
 import logging
 import os
+
 from selenium.webdriver.common.by import By
+
 from .browser import Browser
+
 
 class Yad2Auth:
     LOGIN_URL = "https://www.yad2.co.il/auth/login"

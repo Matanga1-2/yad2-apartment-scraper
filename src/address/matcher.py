@@ -1,8 +1,10 @@
-from typing import Optional
 import json
-from fuzzywuzzy import fuzz
 import logging
 from dataclasses import dataclass
+from typing import Optional
+
+from fuzzywuzzy import fuzz
+
 
 @dataclass
 class StreetMatch:
