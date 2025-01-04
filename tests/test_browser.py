@@ -3,7 +3,7 @@ import time
 
 from selenium.webdriver.common.by import By
 
-from src.browser import Browser
+from src.yad2.browser import Browser
 
 # Setup logger at module level
 logger = logging.getLogger(__name__)

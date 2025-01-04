@@ -1,7 +1,7 @@
 import json
 import logging
 import pytest
-from src.address import AddressMatcher, StreetMatch
+from src.address import AddressMatcher
 
 # Setup logger at module level
 logger = logging.getLogger(__name__)
