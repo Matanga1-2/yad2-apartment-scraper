@@ -2,7 +2,7 @@ import logging
 
 from address import AddressMatcher
 from cli.input_handler import display_feed_stats, get_valid_url
-from processor.feed_processor import process_feed_items
+from processor.feed_processor import categorize_feed_items, process_feed_items
 from utils.console import prompt_yes_no
 from yad2.client import Yad2Client
 
@@ -71,9 +71,8 @@ class Yad2ScraperApp:
             print("No feed items found")
             return
         
-        total_items = len(self.feed_items)
-        saved_items = sum(1 for item in self.feed_items if item.is_saved)
-        display_feed_stats(total_items, saved_items)
+        categorized_feed = categorize_feed_items(self.feed_items, self.address_matcher)
+        display_feed_stats(categorized_feed)
 
     def _handle_process_feed(self) -> None:
         if self.feed_items is None:

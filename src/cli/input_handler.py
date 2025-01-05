@@ -2,6 +2,8 @@ import logging
 from typing import Optional
 from urllib.parse import urlparse
 
+from processor.models import CategorizedFeed
+
 
 def validate_yad2_url(url: str) -> bool:
     """Validate that the URL is a valid Yad2 URL."""
@@ -29,10 +31,11 @@ def get_valid_url() -> Optional[str]:
             logging.warning("User terminated input with EOF")
             return None
 
-def display_feed_stats(total_items: int, saved_items: int):
-    """Display statistics about feed items."""
-    new_items = total_items - saved_items
-    logging.info(f"Found {total_items} items ({new_items} new, {saved_items} saved)")
-    print(f"\nFound {total_items} items:")
-    print(f"  • {new_items} new listings")
-    print(f"  • {saved_items} saved listings (will be skipped)") 
+def display_feed_stats(categorized_feed: CategorizedFeed):
+    """Display statistics about categorized feed items."""
+    stats = categorized_feed.stats
+    
+    print(f"\nFound {stats['total']} items:")
+    print(f"  • {stats['supported_new']} new listings from supported streets")
+    print(f"  • {stats['unsupported_new']} new listings from unsupported streets")
+    print(f"  • {stats['saved']} saved listings (will be skipped)") 
