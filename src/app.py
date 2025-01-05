@@ -5,6 +5,7 @@ from cli.input_handler import display_feed_stats, get_valid_url
 from processor.feed_processor import categorize_feed_items, process_feed_items
 from utils.console import prompt_yes_no
 from yad2.client import Yad2Client
+from utils.text_formatter import format_hebrew
 
 
 class Yad2ScraperApp:
@@ -24,7 +25,7 @@ class Yad2ScraperApp:
                     break
             except Exception as e:
                 logging.error(f"Error: {str(e)}", exc_info=True)
-                print(f"Error: {str(e)}")
+                print(f"Error: {format_hebrew(str(e))}")
                 if not prompt_yes_no("\nWould you like to continue?"):
                     break
 

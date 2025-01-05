@@ -29,4 +29,8 @@ def format_hebrew(text: str) -> str:
         else:
             formatted_words.append(word)
     
+    # For text containing Hebrew, reverse the order of words
+    if any(is_hebrew(word) for word in words):
+        formatted_words.reverse()
+    
     return ' '.join(formatted_words) 

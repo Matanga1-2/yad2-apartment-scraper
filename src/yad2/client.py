@@ -110,42 +110,6 @@ class Yad2Client:
         """
         return self.enricher.enrich_item(item)
     
-    def save_feed_item(self, item: FeedItem) -> bool:
-        """
-        Saves a feed item by clicking the save button.
-        Returns True if successful, False otherwise.
-        """
-        try:
-            print("Saving item...")
-            # More specific selector targeting the actual button
-            button_selector = "button[data-testid='like-button']"
-            
-            # First wait for element to be present
-            save_button = self.browser.wait_for_element(
-                By.CSS_SELECTOR, 
-                button_selector,
-                timeout=10
-            )
-            
-            # Scroll element into view
-            self.browser.driver.execute_script("arguments[0].scrollIntoView(true);", save_button)
-            self.browser.random_delay(0.4, 0.7)  # Small delay after scroll
-            
-            # wait_for_clickable doesn't work, fallback to safe_click
-            try:
-                self.browser.safe_click(save_button)
-            except Exception:
-                self.logger.warning("Regular click failed, trying JavaScript click")
-                self.browser.driver.execute_script("arguments[0].click();", save_button)
-            
-            self.browser.random_delay(1.0, 2.0)  # Wait for any animations
-            print("Item saved successfully!")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Failed to save item {item.url}: {str(e)}")
-            print(f"Failed to save item {item.url}")
-            return False
 
     def send_feed_item(self, item: FeedItem) -> None:
         """

@@ -13,8 +13,8 @@ def test_is_hebrew():
 
 
 @pytest.mark.parametrize("input_text,expected", [
-    ("חיים וייצמן", "םייח ןמצייו"),
-    ("בן גוריון", "ןב ןוירוג"),
+    ("חיים וייצמן", "ןמצייו םייח"),
+    ("בן גוריון", "ןוירוג ןב"),
     ("רחובות", "תובוחר"),
 ])
 def test_hebrew_only_text(input_text, expected):
@@ -23,9 +23,9 @@ def test_hebrew_only_text(input_text, expected):
 
 
 @pytest.mark.parametrize("input_text,expected", [
-    ("חיים וייצמן 25", "םייח ןמצייו 25"),
-    ("הרצל 12", "לצרה 12"),
-    ("רחובות 123", "תובוחר 123"),
+    ("חיים וייצמן 25", "25 ןמצייו םייח"),
+    ("הרצל 12", "12 לצרה"),
+    ("רחובות 123", "123 תובוחר"),
 ])
 def test_hebrew_with_numbers(input_text, expected):
     """Test formatting of Hebrew text with numbers."""
@@ -43,9 +43,9 @@ def test_non_hebrew_text(input_text, expected):
 
 
 @pytest.mark.parametrize("input_text,expected", [
-    ("שלום hello", "םולש hello"),
-    ("hello שלום", "hello םולש"),
-    ("שלום hello 123", "םולש hello 123"),
+    ("שלום hello", "hello םולש"),
+    ("hello שלום", "םולש hello"),
+    ("שלום hello 123", "123 hello םולש"),
 ])
 def test_mixed_text(input_text, expected):
     """Test formatting of mixed Hebrew and English text."""
