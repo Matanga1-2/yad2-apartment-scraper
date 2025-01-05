@@ -1,7 +1,7 @@
-import PyInstaller.__main__
 import os
-import sys
-from dotenv import load_dotenv
+
+import PyInstaller.__main__
+
 
 def create_error_handler():
     """Create a wrapper script that handles errors and keeps the window open"""

@@ -8,10 +8,12 @@ from src.mail_sender.sender import EmailSender
 
 from .auth import Yad2Auth
 from .browser import Browser
+from .feed_handler import FeedHandler
 from .feed_parser import FeedParser
 from .item_enricher import ItemEnricher
 from .models import FeedItem
-from .selectors import FEED_CONTAINER, FEED_ITEM
+from .navigation import NavigationHandler
+from .pagination import PaginationHandler
 
 
 class Yad2Client:
@@ -19,77 +21,74 @@ class Yad2Client:
     REALESTATE_URL = f"{BASE_URL}/realestate/forsale"
 
     def __init__(self, headless: bool = True):
-        load_dotenv()  # Load environment variables from .env file
+        load_dotenv()
         self.browser = Browser(headless=headless)
-        self.browser.init_driver()  # Initialize the driver here
+        self.browser.init_driver()
+        
         if not self.browser.driver:
-            self.logger.error("Failed to initialize browser driver")
             raise RuntimeError("Browser initialization failed")
+
         self.parser = FeedParser()
         self.auth = Yad2Auth(self.browser)
         self.enricher = ItemEnricher(self.browser)
-        self.login()
-        self.logger = logging.getLogger(__name__)  # Just get the logger
+        self.navigation = NavigationHandler(self.browser)
+        self.pagination = PaginationHandler(self.browser)
+        self.feed_handler = FeedHandler(self.browser, self.parser)
         self.email_sender = EmailSender()
+        self.logger = logging.getLogger(__name__)
+        
+        self.login()
 
     def navigate_to(self, url: str) -> bool:
-        """Navigate to the specified URL and ensure the page loads properly."""
-        try:
-            # Ensure browser is initialized
-            if not self.browser.driver:
-                self.browser.init_driver()
-            
-            # Navigate to the provided URL
-            self.logger.info(f"Accessing {url}")
-            print("Opening URL...")
-            self.browser.driver.get(url)
-            
-            # Wait for the feed container to be present and visible
-            self.browser.wait_for_element(By.CSS_SELECTOR, FEED_CONTAINER, timeout=30)
-            self.browser.random_delay(2.0, 4.0)
-            
-            # Check for captcha after loading
-            if self.browser.has_captcha():
-                print("Captcha detected!")
-                self.logger.warning("Captcha detected while loading feed items")
-                return False
-                
-            return True
-
-        except Exception as e:
-            self.logger.error(f"Failed to navigate to URL: {str(e)}")
-            print(f"Failed to navigate to URL: {str(e)}")
-            return False
+        return self.navigation.navigate_to(url)
 
     def get_feed_items(self) -> List[FeedItem]:
-        """Get feed items from the current page."""
+        """Get feed items from all available pages."""
+        all_items = []
+        current_url = self.browser.driver.current_url
+        MAX_PAGES = 10
+        
         try:
-            feed_container = self.browser.driver.find_element(By.CSS_SELECTOR, FEED_CONTAINER)
-            # Filter out yad1 listings when getting feed items
-            feed_items = [
-                item for item in feed_container.find_elements(By.CSS_SELECTOR, FEED_ITEM)
-                if 'yad1-listing' not in item.get_attribute('data-testid')
-            ]
+            # Get items from first page
+            print("Processing page 1...")
+            first_page_items = self.feed_handler.get_current_page_items()
+            all_items.extend(first_page_items)
             
-            self.logger.info(f"Found {len(feed_items)} valid feed items (excluding yad1 listings)")
+            # Check for additional pages
+            total_pages = min(self.pagination.get_total_pages(), MAX_PAGES)
+            if total_pages > 1:
+                if total_pages == MAX_PAGES:
+                    print(f"Found more than {MAX_PAGES} pages, limiting to first {MAX_PAGES}...")
+                else:
+                    print(f"Found {total_pages} pages, processing remaining pages...")
+                
+                for page in range(2, total_pages + 1):
+                    print(f"Processing page {page}/{total_pages}...")
+                    next_page_url = self.pagination.modify_url_for_page(current_url, page)
+                    
+                    # Add random delay between page navigations
+                    self.browser.random_delay(3.0, 5.0)
+                    
+                    if not self.navigate_to(next_page_url):
+                        self.logger.warning(f"Failed to load page {page}, stopping pagination")
+                        break
+                    
+                    # Check for captcha after each navigation
+                    if self.browser.has_captcha():
+                        self.logger.warning("Captcha detected, stopping pagination")
+                        print("\nCaptcha detected! Stopping to prevent blocking...")
+                        break
+                    
+                    page_items = self.feed_handler.get_current_page_items()
+                    all_items.extend(page_items)
             
-            print("Processing feed items...")
-            parsed_items = []
-            for item in feed_items:
-                parsed_item = self.parser.parse_item(item)
-                if parsed_item:
-                    parsed_items.append(parsed_item)
-                    self.logger.debug(f"Successfully parsed item {parsed_item.item_id}")
+            print(f"\nFound {len(all_items)} items total")
+            return all_items
             
-            if not parsed_items:
-                self.logger.warning("No valid feed items found on current page")
-                print("No valid feed items found on current page")
-            return parsed_items
-
         except Exception as e:
-            self.logger.error(f"Failed to get feed items: {str(e)}")
-            print(f"Failed to get feed items: {str(e)}")
-            return []
+            self.logger.error(f"Error while getting feed items: {str(e)}")
+            print(f"Error while getting feed items: {str(e)}")
+            return all_items
 
     def close(self):
         self.browser.quit()
