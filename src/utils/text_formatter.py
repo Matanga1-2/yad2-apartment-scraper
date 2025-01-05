@@ -1,5 +1,7 @@
 import sys
+
 import regex  # Using regex instead of re for better Unicode support
+
 
 def is_hebrew(text: str) -> bool:
     """Check if text contains Hebrew characters."""

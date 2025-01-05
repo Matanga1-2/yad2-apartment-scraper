@@ -3,9 +3,9 @@ from typing import List
 
 from address import AddressMatcher
 from utils.console import prompt_yes_no
+from utils.text_formatter import format_hebrew
 from yad2.client import Yad2Client
 from yad2.models import FeedItem
-from utils.text_formatter import format_hebrew
 
 from .feed_categorizer import categorize_feed_items
 

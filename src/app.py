@@ -4,8 +4,8 @@ from address import AddressMatcher
 from cli.input_handler import display_feed_stats, get_valid_url
 from processor.feed_processor import categorize_feed_items, process_feed_items
 from utils.console import prompt_yes_no
-from yad2.client import Yad2Client
 from utils.text_formatter import format_hebrew
+from yad2.client import Yad2Client
 
 
 class Yad2ScraperApp:

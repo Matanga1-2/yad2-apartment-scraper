@@ -2,7 +2,6 @@ import logging
 from typing import List
 
 from dotenv import load_dotenv
-from selenium.webdriver.common.by import By
 
 from src.mail_sender.sender import EmailSender
 

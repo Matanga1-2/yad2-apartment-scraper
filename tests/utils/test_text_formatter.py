@@ -1,5 +1,7 @@
 import sys
+
 import pytest
+
 from src.utils.text_formatter import format_hebrew, is_hebrew
 
 
@@ -70,12 +72,12 @@ def test_exe_environment():
     
     try:
         # Simulate exe environment
-        setattr(sys, 'frozen', True)
+        sys.frozen = True
         assert format_hebrew(test_text) == test_text, "Text should remain unchanged in exe environment"
         
     finally:
         # Restore original state
         if original_frozen:
-            setattr(sys, 'frozen', True)
+            sys.frozen = True
         else:
             delattr(sys, 'frozen') if hasattr(sys, 'frozen') else None
