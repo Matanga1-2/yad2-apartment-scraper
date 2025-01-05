@@ -16,3 +16,7 @@ PROPERTY_SPECS = '[class*="item-data-content_itemInfoLine__"]:not([class*="first
 # Tags and save button
 TAGS_CONTAINER = '[class*="item-tags_itemTagsBox__"]'
 SAVE_BUTTON = '[class*="like-toggle_likeButton__"]'
+
+# New pagination selectors
+PAGINATION_TEXT = 'nav[data-nagish="pagination-navbar"] span:first-of-type'  # The text showing "עמוד X מתוך Y"
+PAGINATION_NAV = 'nav[data-nagish="pagination-navbar"]'     # The pagination container

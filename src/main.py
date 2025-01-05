@@ -40,8 +40,9 @@ def signal_handler(*_):
 def main():
     try:
         log_level = os.getenv('DEFAULT_LOG_LEVEL', 'WARNING')
+        file_log_level = os.getenv('DEFAULT_FILE_LOG_LEVEL', 'INFO')
         log_file = get_log_path()
-        setup_logging(level=getattr(logging, log_level), log_file=log_file)
+        setup_logging(level=getattr(logging, log_level), log_file=log_file, log_file_level=file_log_level)
     except Exception as e:
         print(f"Failed to setup logging: {str(e)}")
         return 1
