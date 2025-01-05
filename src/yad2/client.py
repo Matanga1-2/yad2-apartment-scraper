@@ -46,15 +46,24 @@ class Yad2Client:
             
             # Wait for the feed container to be present and visible
             self.browser.wait_for_element(By.CSS_SELECTOR, FEED_CONTAINER, timeout=30)
-            self.browser.random_delay(2.0, 4.0)
             
-            # Check for captcha after loading
-            if self.browser.has_captcha():
-                print("Captcha detected!")
-                self.logger.warning("Captcha detected while loading feed items")
-                return False
-                
-            return True
+            # Wait for favorites badge with more specific selector
+            print("Waiting for favorites badge...")
+            self.logger.info("Waiting for favorites badge to load...")
+            
+            favorites_badge = self.browser.wait_for_element(
+                By.CSS_SELECTOR,
+                'div[data-testid="favorites-dropdown-menu"] span[data-testid="badge"]',
+                timeout=30
+            )
+            
+            if favorites_badge and favorites_badge.is_displayed():
+                print("Page loaded successfully!")
+                self.logger.info("Page loaded successfully - favorites badge found")
+                return True
+            
+            self.logger.warning("Favorites badge not found or not visible")
+            return False
 
         except Exception as e:
             self.logger.error(f"Failed to navigate to URL: {str(e)}")
