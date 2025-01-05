@@ -1,6 +1,5 @@
 from src.address.utils import normalize_hebrew_text
 
-
 def test_normalize_hebrew_text():
     test_cases = [
         ('בית"ר', 'ביתר'),

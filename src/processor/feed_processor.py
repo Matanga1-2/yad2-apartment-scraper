@@ -5,6 +5,7 @@ from address import AddressMatcher
 from utils.console import prompt_yes_no
 from yad2.client import Yad2Client
 from yad2.models import FeedItem
+from utils.text_formatter import format_hebrew
 
 from .feed_categorizer import categorize_feed_items
 
@@ -15,7 +16,7 @@ def process_item(item: FeedItem, client: Yad2Client) -> None:
         try:
             enriched_item = client.enrich_feed_item(item)
             print("\nFormatted listing:")
-            print(enriched_item.format_listing())
+            print(format_hebrew(enriched_item.format_listing()))
             logging.info(f"Approved and enriched item: {item.url}")
             if prompt_yes_no("Do you approve the format?"):
                 client.send_feed_item(enriched_item)
@@ -43,10 +44,10 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
             match = address_matcher.is_street_allowed(item.location.street, item.location.city)
             
             if match.constraint:
-                print(f"Street: {item.location.street} ({match.neighborhood})")
-                print(f"Constraint: {match.constraint}")
+                print(f"Street: {format_hebrew(item.location.street)} ({format_hebrew(match.neighborhood)})")
+                print(f"Constraint: {format_hebrew(match.constraint)}")
             else:
-                print(f"Street: {item.location.street}")
+                print(f"Street: {format_hebrew(item.location.street)}")
                 
             print(f"Item link: {item.url}")
             
@@ -64,7 +65,7 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
         print("\nProcessing unsupported streets...")
         for idx, item in enumerate(categorized.unsupported_items, 1):
             print(f"\nUnsupported Item {idx}/{len(categorized.unsupported_items)}")
-            print(f"Street: {item.location.street}")
+            print(f"Street: {format_hebrew(item.location.street)}")
             print(f"Item link: {item.url}")
             if not prompt_yes_no("Street isn't supported, skip?"):
                 process_item(item, client)
