@@ -93,7 +93,7 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
             continue
 
         street = item.location.street
-        match = address_matcher.is_street_allowed(street)
+        match = address_matcher.is_street_allowed(street, item.location.city)
         should_process = False
         
         print(f"\nItem {idx}/{len(items)}")
