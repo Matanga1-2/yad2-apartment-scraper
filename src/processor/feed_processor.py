@@ -12,27 +12,31 @@ from .feed_categorizer import categorize_feed_items
 
 def process_item(item: FeedItem, client: Yad2Client) -> None:
     """Process a single feed item."""
-    if prompt_yes_no("Do you approve to send?"):
-        try:
-            enriched_item = client.enrich_feed_item(item)
+    try:
+        enriched_item = client.enrich_feed_item(item)
 
-            if item.floor_number == item.total_floors:
-                print("Last floor is not recommended")
-                logging.info(f"Rejected item: {item.url}")
-                return
-            
+        if item.floor_number == item.total_floors:
+            print("Last floor is not recommended")
+            logging.info(f"Rejected item: {item.url}")
+        else:
             print("\nFormatted listing:")
             print(format_hebrew(enriched_item.format_listing()))
             logging.info(f"Approved and enriched item: {item.url}")
-            if prompt_yes_no("Do you approve the format?"):
-                client.send_feed_item(enriched_item)
+            
+            if prompt_yes_no("Do you approve to send?"):
+                if prompt_yes_no("Do you approve the format?"):
+                    client.send_feed_item(enriched_item)
+                else:
+                    logging.info(f"Skipped sending item: {item.url}")
             else:
-                logging.info(f"Skipped sending item: {item.url}")
-        except Exception as e:
-            logging.error(f"Failed to enrich item {item.url}: {str(e)}")
-            print(f"Error: Failed to enrich item: {str(e)}")
-    else:
-        logging.info(f"Rejected item: {item.url}")
+                logging.info(f"Rejected item: {item.url}")
+            
+    except Exception as e:
+        logging.error(f"Failed to enrich item {item.url}: {str(e)}")
+        print(f"Error: Failed to enrich item: {str(e)}")
+    finally:
+        # Always try to save the ad at the end, regardless of what happened
+        client.save_ad()
 
 def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, client: Yad2Client) -> None:
     """Process feed items in order: supported streets first, then unsupported."""

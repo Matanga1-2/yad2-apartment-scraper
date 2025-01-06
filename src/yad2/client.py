@@ -133,3 +133,44 @@ class Yad2Client:
         except Exception as e:
             self.logger.error(f"Failed to send email for item {item.item_id}: {str(e)}")
             raise
+
+    def save_ad(self) -> bool:
+        """
+        Attempts to save/like the current ad by clicking the save button.
+        Uses data-testid attributes to find elements as they are more stable than dynamic class names.
+        
+        Returns:
+            bool: True if the save operation was successful, False otherwise
+        """
+        try:
+            # Execute JavaScript to find and click the button using more stable selectors
+            success = self.browser.driver.execute_script("""
+                // Find the price element as an anchor point (it has a stable data-testid)
+                const priceElement = document.querySelector('[data-testid="price"]');
+                if (!priceElement) return false;
+                
+                // Go up the DOM tree to find the feed item container
+                const itemContainer = priceElement.closest('div[class*="card_cardBox"]');
+                if (!itemContainer) return false;
+                
+                // Find the like button using data-testid within this container
+                const likeButton = itemContainer.querySelector('[data-testid="like-button"]');
+                if (!likeButton) return false;
+                
+                likeButton.click();
+                return true;
+            """)
+            
+            if success:
+                self.logger.info("Successfully saved ad")
+                print("Saved ad")
+                return True
+            else:
+                self.logger.warning("Could not find save button on page")
+                print("Error saving ad!")
+                return False
+            
+        except Exception as e:
+            self.logger.error(f"Error while trying to save ad: {str(e)}")
+            print("Error saving ad!")
+            return False
