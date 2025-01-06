@@ -69,11 +69,12 @@ def test_exe_environment():
     """Test behavior in exe environment."""
     original_frozen = getattr(sys, 'frozen', False)
     test_text = "חיים וייצמן 25"
+    expected_output = "25 ןמצייו םייח"  # Expect the text to be formatted even in exe environment
     
     try:
         # Simulate exe environment
         sys.frozen = True
-        assert format_hebrew(test_text) == test_text, "Text should remain unchanged in exe environment"
+        assert format_hebrew(test_text) == expected_output, "Text should be formatted even in exe environment"
         
     finally:
         # Restore original state
