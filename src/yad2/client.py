@@ -151,9 +151,9 @@ class Yad2Client:
         try:
             # Execute JavaScript to find and click the button for this specific item
             success = self.browser.driver.execute_script("""
-                // Find the feed item by its URL
-                const itemUrl = arguments[0];
-                const itemLink = document.querySelector(`a[href^="${itemUrl}"]`);
+                // Find the feed item by its base URL (without query params)
+                const itemId = arguments[0];
+                const itemLink = document.querySelector(`a[href*="/realestate/item/${itemId}"]`);
                 if (!itemLink) return false;
                 
                 // Find the like button within this item's container
@@ -165,7 +165,7 @@ class Yad2Client:
                 
                 likeButton.click();
                 return true;
-            """, item.url)
+            """, item.item_id)
             
             if success:
                 self.logger.info(f"Successfully saved item {item.item_id}")

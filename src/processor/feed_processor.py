@@ -13,24 +13,29 @@ from .feed_categorizer import categorize_feed_items
 def process_item(item: FeedItem, client: Yad2Client) -> None:
     """Process a single feed item."""
     try:
-        enriched_item = client.enrich_feed_item(item)
-
-        if item.specs.features.current_floor == item.specs.features.total_floors:
-            print("Last floor is not recommended")
+        # 1. First approval
+        if not prompt_yes_no("Do you approve to send?"):
             logging.info(f"Rejected item: {item.url}")
         else:
-            print("\nFormatted listing:")
-            print(format_hebrew(enriched_item.format_listing()))
-            logging.info(f"Approved and enriched item: {item.url}")
-            
-            if prompt_yes_no("Do you approve to send?"):
+            # 2. Enrich item
+            enriched_item = client.enrich_feed_item(item)
+
+            # 3. Check last floor
+            if item.specs.features.current_floor == item.specs.features.total_floors:
+                print("Last floor is not recommended")
+                logging.info(f"Rejected item: {item.url}")
+            else:
+                # 4. Show formatted listing and get format approval
+                print("\nFormatted listing:")
+                print(format_hebrew(enriched_item.format_listing()))
+                logging.info(f"Approved and enriched item: {item.url}")
+                
+                # 5. Format approval and send
                 if prompt_yes_no("Do you approve the format?"):
                     client.send_feed_item(enriched_item)
                 else:
                     logging.info(f"Skipped sending item: {item.url}")
-            else:
-                logging.info(f"Rejected item: {item.url}")
-            
+
     except Exception as e:
         logging.error(f"Failed to enrich item {item.url}: {str(e)}")
         print(f"Error: Failed to enrich item: {str(e)}")
@@ -66,6 +71,7 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
                     process_item(item, client)
                 else:
                     print("Skipping...")
+                    client.save_ad(item)
                     continue
             else:
                 process_item(item, client)
@@ -81,3 +87,4 @@ def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, c
                 process_item(item, client)
             else:
                 print("Skipping...") 
+                client.save_ad(item)
