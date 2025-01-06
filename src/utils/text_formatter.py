@@ -1,4 +1,3 @@
-import sys
 
 import regex  # Using regex instead of re for better Unicode support
 
