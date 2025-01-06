@@ -13,11 +13,6 @@ def format_hebrew(text: str) -> str:
     Format Hebrew text for display, handling both terminal and exe environments.
     Only reverses text containing Hebrew characters.
     """
-    if getattr(sys, 'frozen', False):
-        # Running as exe - leave text as is
-        return text
-    
-    # Running in terminal
     # Split by spaces to preserve word order
     words = text.split()
     

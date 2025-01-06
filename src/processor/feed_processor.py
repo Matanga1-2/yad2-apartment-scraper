@@ -15,6 +15,12 @@ def process_item(item: FeedItem, client: Yad2Client) -> None:
     if prompt_yes_no("Do you approve to send?"):
         try:
             enriched_item = client.enrich_feed_item(item)
+
+            if item.floor_number == item.total_floors:
+                print("Last floor is not recommended")
+                logging.info(f"Rejected item: {item.url}")
+                return
+            
             print("\nFormatted listing:")
             print(format_hebrew(enriched_item.format_listing()))
             logging.info(f"Approved and enriched item: {item.url}")
