@@ -1,7 +1,9 @@
 import logging
+import re
 from typing import List
 
 from dotenv import load_dotenv
+from selenium.webdriver.common.by import By
 
 from src.mail_sender.sender import EmailSender
 
@@ -12,7 +14,6 @@ from .feed_parser import FeedParser
 from .item_enricher import ItemEnricher
 from .models import FeedItem
 from .navigation import NavigationHandler
-from .pagination import PaginationHandler
 
 
 class Yad2Client:
@@ -31,7 +32,6 @@ class Yad2Client:
         self.auth = Yad2Auth(self.browser)
         self.enricher = ItemEnricher(self.browser)
         self.navigation = NavigationHandler(self.browser)
-        self.pagination = PaginationHandler(self.browser)
         self.feed_handler = FeedHandler(self.browser, self.parser)
         self.email_sender = EmailSender()
         self.logger = logging.getLogger(__name__)
@@ -42,52 +42,56 @@ class Yad2Client:
         return self.navigation.navigate_to(url)
 
     def get_feed_items(self) -> List[FeedItem]:
-        """Get feed items from all available pages."""
-        all_items = []
-        current_url = self.browser.driver.current_url
-        MAX_PAGES = 10
-        
+        """Get feed items from current page and display total pages available."""
         try:
-            # Get items from first page
-            print("Processing page 1...")
-            first_page_items = self.feed_handler.get_current_page_items()
-            all_items.extend(first_page_items)
+            # Get total pages info for display only
+            total_pages = self._get_total_pages()
+            print(f"Processing page 1/{total_pages}...")
             
-            # Check for additional pages
-            total_pages = min(self.pagination.get_total_pages(), MAX_PAGES)
-            if total_pages > 1:
-                if total_pages == MAX_PAGES:
-                    print(f"Found more than {MAX_PAGES} pages, limiting to first {MAX_PAGES}...")
-                else:
-                    print(f"Found {total_pages} pages, processing remaining pages...")
-                
-                for page in range(2, total_pages + 1):
-                    print(f"Processing page {page}/{total_pages}...")
-                    next_page_url = self.pagination.modify_url_for_page(current_url, page)
-                    
-                    # Add random delay between page navigations
-                    self.browser.random_delay(3.0, 5.0)
-                    
-                    if not self.navigate_to(next_page_url):
-                        self.logger.warning(f"Failed to load page {page}, stopping pagination")
-                        break
-                    
-                    # Check for captcha after each navigation
-                    if self.browser.has_captcha():
-                        self.logger.warning("Captcha detected, stopping pagination")
-                        print("\nCaptcha detected! Stopping to prevent blocking...")
-                        break
-                    
-                    page_items = self.feed_handler.get_current_page_items()
-                    all_items.extend(page_items)
-            
-            print(f"\nFound {len(all_items)} items total")
-            return all_items
+            # Get items from current page only
+            items = self.feed_handler.get_current_page_items()
+            print(f"\nFound {len(items)} items on current page")
+            return items
             
         except Exception as e:
             self.logger.error(f"Error while getting feed items: {str(e)}")
             print(f"Error while getting feed items: {str(e)}")
-            return all_items
+            return []
+
+    def _get_total_pages(self) -> int:
+        """Get total number of pages from pagination element."""
+        try:
+            # Check if pagination exists
+            nav = self.browser.wait_for_element(
+                By.CSS_SELECTOR, 
+                'nav[data-test-id="pagination"]',
+                timeout=5
+            )
+            
+            if not nav:
+                self.logger.info("No pagination found, assuming single page")
+                return 1
+
+            pagination_text = self.browser.wait_for_element(
+                By.CSS_SELECTOR, 
+                'div[class^="pagination"] span',
+                timeout=5
+            )
+            
+            if pagination_text:
+                text_content = pagination_text.get_attribute('textContent')
+                match = re.search(r'מתוך (\d+)', text_content)
+                if match:
+                    total_pages = int(match.group(1))
+                    self.logger.info(f"Found {total_pages} total pages")
+                    return total_pages
+            
+            self.logger.info("No pagination text found, assuming single page")
+            return 1
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to get total pages: {str(e)}")
+            return 1
 
     def close(self):
         self.browser.quit()
