@@ -133,3 +133,50 @@ class Yad2Client:
         except Exception as e:
             self.logger.error(f"Failed to send email for item {item.item_id}: {str(e)}")
             raise
+
+    def save_ad(self, item: FeedItem) -> bool:
+        """
+        Attempts to save/like a specific feed item by clicking its save button.
+        
+        Args:
+            item: The FeedItem to save
+            
+        Returns:
+            bool: True if the save operation was successful, False otherwise
+        """
+        if not item or not item.item_id:
+            self.logger.error("Attempting to save invalid feed item")
+            return False
+        
+        try:
+            # Execute JavaScript to find and click the button for this specific item
+            success = self.browser.driver.execute_script("""
+                // Find the feed item by its base URL (without query params)
+                const itemId = arguments[0];
+                const itemLink = document.querySelector(`a[href*="/realestate/item/${itemId}"]`);
+                if (!itemLink) return false;
+                
+                // Find the like button within this item's container
+                const itemContainer = itemLink.closest('div[class*="card_cardBox"]');
+                if (!itemContainer) return false;
+                
+                const likeButton = itemContainer.querySelector('[data-testid="like-button"]');
+                if (!likeButton) return false;
+                
+                likeButton.click();
+                return true;
+            """, item.item_id)
+            
+            if success:
+                self.logger.info(f"Successfully saved item {item.item_id}")
+                print("Saved ad")
+                return True
+            else:
+                self.logger.warning(f"Could not find save button for item {item.item_id}")
+                print("Error saving ad!")
+                return False
+            
+        except Exception as e:
+            self.logger.error(f"Error while trying to save item {item.item_id}: {str(e)}")
+            print("Error saving ad!")
+            return False

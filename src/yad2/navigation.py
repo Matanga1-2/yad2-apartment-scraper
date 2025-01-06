@@ -26,7 +26,7 @@ class NavigationHandler:
             favorites_badge = self.browser.wait_for_element(
                 By.CSS_SELECTOR,
                 'div[data-testid="favorites-dropdown-menu"] span[data-testid="badge"]',
-                timeout=30
+                timeout=300
             )
             
             if favorites_badge and favorites_badge.is_displayed():
