@@ -134,43 +134,49 @@ class Yad2Client:
             self.logger.error(f"Failed to send email for item {item.item_id}: {str(e)}")
             raise
 
-    def save_ad(self) -> bool:
+    def save_ad(self, item: FeedItem) -> bool:
         """
-        Attempts to save/like the current ad by clicking the save button.
-        Uses data-testid attributes to find elements as they are more stable than dynamic class names.
+        Attempts to save/like a specific feed item by clicking its save button.
         
+        Args:
+            item: The FeedItem to save
+            
         Returns:
             bool: True if the save operation was successful, False otherwise
         """
+        if not item or not item.item_id:
+            self.logger.error("Attempting to save invalid feed item")
+            return False
+        
         try:
-            # Execute JavaScript to find and click the button using more stable selectors
+            # Execute JavaScript to find and click the button for this specific item
             success = self.browser.driver.execute_script("""
-                // Find the price element as an anchor point (it has a stable data-testid)
-                const priceElement = document.querySelector('[data-testid="price"]');
-                if (!priceElement) return false;
+                // Find the feed item by its URL
+                const itemUrl = arguments[0];
+                const itemLink = document.querySelector(`a[href^="${itemUrl}"]`);
+                if (!itemLink) return false;
                 
-                // Go up the DOM tree to find the feed item container
-                const itemContainer = priceElement.closest('div[class*="card_cardBox"]');
+                // Find the like button within this item's container
+                const itemContainer = itemLink.closest('div[class*="card_cardBox"]');
                 if (!itemContainer) return false;
                 
-                // Find the like button using data-testid within this container
                 const likeButton = itemContainer.querySelector('[data-testid="like-button"]');
                 if (!likeButton) return false;
                 
                 likeButton.click();
                 return true;
-            """)
+            """, item.url)
             
             if success:
-                self.logger.info("Successfully saved ad")
+                self.logger.info(f"Successfully saved item {item.item_id}")
                 print("Saved ad")
                 return True
             else:
-                self.logger.warning("Could not find save button on page")
+                self.logger.warning(f"Could not find save button for item {item.item_id}")
                 print("Error saving ad!")
                 return False
             
         except Exception as e:
-            self.logger.error(f"Error while trying to save ad: {str(e)}")
+            self.logger.error(f"Error while trying to save item {item.item_id}: {str(e)}")
             print("Error saving ad!")
             return False

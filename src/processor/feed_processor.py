@@ -15,7 +15,7 @@ def process_item(item: FeedItem, client: Yad2Client) -> None:
     try:
         enriched_item = client.enrich_feed_item(item)
 
-        if item.floor_number == item.total_floors:
+        if item.specs.features.current_floor == item.specs.features.total_floors:
             print("Last floor is not recommended")
             logging.info(f"Rejected item: {item.url}")
         else:
@@ -36,7 +36,7 @@ def process_item(item: FeedItem, client: Yad2Client) -> None:
         print(f"Error: Failed to enrich item: {str(e)}")
     finally:
         # Always try to save the ad at the end, regardless of what happened
-        client.save_ad()
+        client.save_ad(item)
 
 def process_feed_items(items: List[FeedItem], address_matcher: AddressMatcher, client: Yad2Client) -> None:
     """Process feed items in order: supported streets first, then unsupported."""
