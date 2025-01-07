@@ -43,8 +43,15 @@ class Yad2Auth:
             self.browser.safe_click(submit_button)
             
             # Add a small delay to allow for redirect
-            self.browser.random_delay(8.0, 12.0)
-            
+            self.browser.random_delay(7.0, 9.0)
+
+            # Check for CAPTCHA after click
+            if self.browser.check_for_captcha():
+                input("Press Enter once you've completed the CAPTCHA...")
+
+            # Add a small delay to allow for redirect
+            self.browser.random_delay(5.0, 7.0)
+
             # Check if we're still on the login page (indicating failure)
             if "/auth/login" in self.browser.driver.current_url:
                 self.logger.error("Login failed - still on login page")

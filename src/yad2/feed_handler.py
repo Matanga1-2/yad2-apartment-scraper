@@ -18,6 +18,10 @@ class FeedHandler:
     def get_current_page_items(self) -> List[FeedItem]:
         """Get feed items from the current page."""
         try:
+            # Check for CAPTCHA before getting items
+            if self.browser.check_for_captcha():
+                input("Press Enter once you've completed the CAPTCHA...")
+            
             feed_container = self.browser.driver.find_element(By.CSS_SELECTOR, FEED_CONTAINER)
             feed_items = [
                 item for item in feed_container.find_elements(By.CSS_SELECTOR, FEED_ITEM)
