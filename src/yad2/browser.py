@@ -25,6 +25,7 @@ class Browser:
 
             self.driver = webdriver.Chrome(options=options)
             self.driver.set_page_load_timeout(30)
+            
             return self.driver
 
         except WebDriverException as e:
@@ -103,10 +104,6 @@ class Browser:
                         raise
                 self.random_delay(0.2, 0.5)  # Short delay between attempts
 
-    def has_captcha(self) -> bool:
-        """Check if page contains a Captcha challenge"""
-        return "g-recaptcha" in self.driver.page_source if self.driver else False
-
     def inject_html(self, html_content: str):
         """Safely inject HTML content into the page for testing"""
         self.driver.get("about:blank")
@@ -114,3 +111,12 @@ class Browser:
         safe_html = html_content.replace("`", "\\`").replace("$", "\\$")
         self.driver.execute_script(f"document.write(`{safe_html}`)")
         self.driver.execute_script("document.close()")
+
+    def check_for_captcha(self):
+        """Check if the current URL indicates a CAPTCHA challenge."""
+        if self.driver and "validate.perfdrive.com" in self.driver.current_url:
+            message = "CAPTCHA challenge identified. Please attend to it."
+            self.logger.warning(message)
+            print(message)
+            return True
+        return False

@@ -39,19 +39,47 @@ class Yad2Client:
         self.login()
 
     def navigate_to(self, url: str) -> bool:
-        return self.navigation.navigate_to(url)
+        success = self.navigation.navigate_to(url)
+        
+        # Check for CAPTCHA after navigation
+        if self.browser.check_for_captcha():
+            input("Press Enter once you've completed the CAPTCHA...")
+        
+        return success
+
+    def _deduplicate_items(self, items: List[FeedItem]) -> List[FeedItem]:
+        """Remove duplicate items based on URL while preserving order."""
+        seen_urls = set()
+        unique_items = []
+        
+        for item in items:
+            if item.url not in seen_urls:
+                seen_urls.add(item.url)
+                unique_items.append(item)
+        
+        duplicates_count = len(items) - len(unique_items)
+        if duplicates_count > 0:
+            self.logger.info(f"Removed {duplicates_count} duplicate items")
+        
+        return unique_items
 
     def get_feed_items(self) -> List[FeedItem]:
         """Get feed items from current page and display total pages available."""
         try:
+            # Check for CAPTCHA before getting items
+            if self.browser.check_for_captcha():
+                input("Press Enter once you've completed the CAPTCHA...")
+            
             # Get total pages info for display only
             total_pages = self._get_total_pages()
             print(f"Processing page 1/{total_pages}...")
             
-            # Get items from current page only
+            # Get and deduplicate items
             items = self.feed_handler.get_current_page_items()
-            print(f"\nFound {len(items)} items on current page")
-            return items
+            unique_items = self._deduplicate_items(items)
+            
+            print(f"\nFound {len(unique_items)} unique items on current page")
+            return unique_items
             
         except Exception as e:
             self.logger.error(f"Error while getting feed items: {str(e)}")
@@ -61,10 +89,10 @@ class Yad2Client:
     def _get_total_pages(self) -> int:
         """Get total number of pages from pagination element."""
         try:
-            # Check if pagination exists
+            # Check if pagination exists - updated selector
             nav = self.browser.wait_for_element(
                 By.CSS_SELECTOR, 
-                'nav[data-test-id="pagination"]',
+                'nav[class*="pagination-wrapper_pagination"]',
                 timeout=5
             )
             
@@ -72,9 +100,10 @@ class Yad2Client:
                 self.logger.info("No pagination found, assuming single page")
                 return 1
 
+            # Updated selector for the text element
             pagination_text = self.browser.wait_for_element(
                 By.CSS_SELECTOR, 
-                'div[class^="pagination"] span',
+                'span[class*="pagination-wrapper_textVariant"]',
                 timeout=5
             )
             
@@ -85,6 +114,16 @@ class Yad2Client:
                     total_pages = int(match.group(1))
                     self.logger.info(f"Found {total_pages} total pages")
                     return total_pages
+            
+            # Alternative method: count the number of page links
+            page_links = self.browser.driver.find_elements(
+                By.CSS_SELECTOR,
+                'ol[class*="list_list"] a[class*="item_item"]'
+            )
+            if page_links:
+                total_pages = len(page_links)
+                self.logger.info(f"Found {total_pages} total pages from page links")
+                return total_pages
             
             self.logger.info("No pagination text found, assuming single page")
             return 1
