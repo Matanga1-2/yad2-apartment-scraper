@@ -2,24 +2,26 @@ import logging
 
 from src.address import AddressMatcher
 from src.cli.input_handler import display_feed_stats, get_valid_url
+from src.db.database import Database
+from src.db.saved_items_repository import SavedItemsRepository
 from src.processor.feed_processor import categorize_feed_items, process_feed_items
 from src.utils.console import prompt_yes_no
 from src.utils.text_formatter import format_hebrew
 from src.yad2.client import Yad2Client
-from src.db.database import Database
-from src.db.saved_items_repository import SavedItemsRepository
 
 
 class Yad2ScraperApp:
     def __init__(self, client: Yad2Client, address_matcher: AddressMatcher):
-        self.client = client
-        self.address_matcher = address_matcher
-        self.feed_items = None
-        
         # Initialize database
         self.db = Database()
         self.db.create_tables()
         self.saved_items_repo = SavedItemsRepository(self.db.get_session())
+        
+        # Initialize client
+        self.client = client
+        self.client.saved_items_repo = self.saved_items_repo  # Set the repo on the existing client
+        self.address_matcher = address_matcher
+        self.feed_items = None
 
     def run(self) -> None:
         """Run the main application loop."""
@@ -70,7 +72,7 @@ class Yad2ScraperApp:
             print("Failed to navigate to saved items page")
             return
         
-        items = self.client.get_feed_items()
+        items = self.client.get_saved_items()
         if not items:
             print("No items found on the saved items page")
             return
@@ -104,6 +106,11 @@ class Yad2ScraperApp:
             print("No feed items found")
             return
         
+        # Update is_saved flag based on DB state
+        for item in self.feed_items:
+            if self.saved_items_repo.is_saved(item.item_id):
+                item.is_saved = True
+        
         categorized_feed = categorize_feed_items(self.feed_items, self.address_matcher)
         display_feed_stats(categorized_feed)
 
@@ -115,4 +122,4 @@ class Yad2ScraperApp:
         items_to_process = [item for item in self.feed_items if not item.is_saved]
         
         if prompt_yes_no("\nProceed with processing these items?"):
-            process_feed_items(items_to_process, self.address_matcher, self.client) 
+            process_feed_items(items_to_process, self.address_matcher, self.client, self.saved_items_repo) 

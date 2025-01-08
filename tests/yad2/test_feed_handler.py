@@ -1,7 +1,6 @@
 import logging
 
 import pytest
-from selenium.webdriver.common.by import By
 
 from src.yad2.browser import Browser
 from src.yad2.feed_handler import FeedHandler
@@ -40,7 +39,7 @@ def test_get_saved_items(browser, handler, sample_saved_feed_html):
     logger.info("Testing saved items retrieval")
     
     browser.inject_html(sample_saved_feed_html)
-    items = handler.get_current_page_items()
+    items = handler.get_saved_items()
     
     assert len(items) == 2
     assert all(isinstance(item, tuple) for item in items)
@@ -49,13 +48,50 @@ def test_get_saved_items(browser, handler, sample_saved_feed_html):
     
     logger.info("Saved items retrieval test completed successfully")
 
-def test_detect_saved_items_page(browser, handler, sample_saved_feed_html):
-    logger.info("Testing page type detection")
+@pytest.fixture
+def sample_feed_html():
+    return """
+    <div class="feed-list_feed_123">
+        <div data-nagish="feed-item-list-box">
+            <a class="feed-item_link" 
+               href="https://www.yad2.co.il/item/123"></a>
+            <div class="price_price__xyz">₪ 5,000</div>
+            <div class="item-data-content_heading__xyz">רחוב הרצל</div>
+            <div class="item-data-content_itemInfoLine__xyz first__xyz">תל אביב, מרכז העיר</div>
+            <div class="item-data-content_itemInfoLine__xyz">3 • קומה 2 • 80 מ"ר</div>
+            <div data-testid="like-button">
+                <div class="like-toggle_likeButton__xyz"></div>
+            </div>
+            <div class="item-tags_itemTagsBox__xyz">
+                <span>מיזוג</span>
+                <span>מעלית</span>
+            </div>
+        </div>
+        <div data-nagish="feed-item-list-box">
+            <a class="feed-item_link" 
+               href="https://www.yad2.co.il/item/456"></a>
+            <div class="price_price__xyz">₪ 6,000</div>
+            <div class="item-data-content_heading__xyz">רחוב אלנבי</div>
+            <div class="item-data-content_itemInfoLine__xyz first__xyz">תל אביב, פלורנטין</div>
+            <div class="item-data-content_itemInfoLine__xyz">4 • קומה 3 • 100 מ"ר</div>
+            <div data-testid="like-button">
+                <div class="like-toggle_likeButton__xyz saved__xyz"></div>
+            </div>
+            <div class="item-tags_itemTagsBox__xyz">
+                <span>חניה</span>
+                <span>מרפסת</span>
+            </div>
+        </div>
+    </div>
+    """
+
+def test_get_feed_items(browser, handler, sample_feed_html):
+    logger.info("Testing feed items retrieval")
     
-    browser.inject_html(sample_saved_feed_html)
-    items = handler.get_current_page_items()
+    browser.inject_html(sample_feed_html)
+    items = handler.get_feed_items()
     
-    # Should return tuples for saved items page
-    assert all(isinstance(item, tuple) for item in items)
+    assert len(items) == 2
+    assert all(hasattr(item, 'item_id') for item in items)
     
-    logger.info("Page type detection test completed successfully") 
+    logger.info("Feed items retrieval test completed successfully") 

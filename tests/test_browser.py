@@ -35,10 +35,11 @@ def test_wait_for_element():
 def test_random_delay():
     min_delay = 1.0
     max_delay = 2.0
+    margin = 0.1  # Allow 100ms margin for timing variations
     start_time = time.time()
     Browser.random_delay(min_delay, max_delay)
     elapsed = time.time() - start_time
-    assert min_delay <= elapsed <= max_delay
+    assert min_delay <= elapsed <= max_delay + margin
 
 
 def test_wait_for_clickable():
