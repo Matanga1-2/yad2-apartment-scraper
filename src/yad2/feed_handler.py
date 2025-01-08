@@ -8,7 +8,7 @@ from .browser import Browser
 from .feed_parser import FeedParser
 from .models import FeedItem
 from .saved_feed_parser import SavedFeedParser
-from .selectors import FEED_CONTAINER, FEED_ITEM, SAVED_ITEMS_CONTAINER, SAVED_ITEM
+from .selectors import FEED_CONTAINER, FEED_ITEM, SAVED_ITEM, SAVED_ITEMS_CONTAINER
 
 
 class FeedHandler:
@@ -18,26 +18,30 @@ class FeedHandler:
         self.saved_parser = SavedFeedParser()
         self.logger = logging.getLogger(__name__)
 
-    def get_current_page_items(self) -> List[FeedItem] | List[Tuple[str, str]]:
-        """
-        Get items from the current page.
-        Returns either List[FeedItem] for regular feed or List[Tuple[str, str]] for saved items.
-        """
+    def get_saved_items(self) -> List[Tuple[str, str]]:
+        """Get items from the saved items page."""
         try:
             if self.browser.check_for_captcha():
                 input("Press Enter once you've completed the CAPTCHA...")
             
-            # Try to find saved items container first
-            try:
-                container = self.browser.wait_for_element(By.CSS_SELECTOR, SAVED_ITEMS_CONTAINER, timeout=2)
-                return self._get_saved_items(container)
-            except Exception:
-                # If not found, try regular feed container
-                container = self.browser.wait_for_element(By.CSS_SELECTOR, FEED_CONTAINER)
-                return self._get_regular_items(container)
+            container = self.browser.wait_for_element(By.CSS_SELECTOR, SAVED_ITEMS_CONTAINER)
+            return self._get_saved_items(container)
             
         except Exception as e:
-            self.logger.error(f"Failed to get items from current page: {str(e)}")
+            self.logger.error(f"Failed to get saved items: {str(e)}")
+            return []
+
+    def get_feed_items(self) -> List[FeedItem]:
+        """Get items from the regular feed page."""
+        try:
+            if self.browser.check_for_captcha():
+                input("Press Enter once you've completed the CAPTCHA...")
+            
+            container = self.browser.wait_for_element(By.CSS_SELECTOR, FEED_CONTAINER)
+            return self._get_regular_items(container)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get feed items: {str(e)}")
             return []
 
     def _get_saved_items(self, container: WebElement) -> List[Tuple[str, str]]:
@@ -56,7 +60,7 @@ class FeedHandler:
         """Parse items from regular feed page."""
         feed_items = [
             item for item in container.find_elements(By.CSS_SELECTOR, FEED_ITEM)
-            if 'yad1-listing' not in item.get_attribute('data-testid')
+            if not item.get_attribute('data-testid') or 'yad1-listing' not in item.get_attribute('data-testid')
         ]
         
         parsed_items = []

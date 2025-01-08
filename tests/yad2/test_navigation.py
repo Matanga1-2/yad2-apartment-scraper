@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from selenium.common.exceptions import TimeoutException
@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 
 from src.yad2.browser import Browser
 from src.yad2.navigation import NavigationHandler
-from src.yad2.selectors import FEED_CONTAINER, SAVED_ITEMS_CONTAINER
+from src.yad2.selectors import SAVED_ITEMS_CONTAINER
 
 # Setup logger
 logger = logging.getLogger(__name__)

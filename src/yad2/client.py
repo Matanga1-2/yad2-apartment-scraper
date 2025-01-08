@@ -21,7 +21,7 @@ class Yad2Client:
     REALESTATE_URL = f"{BASE_URL}/realestate/forsale"
     SAVED_ITEMS_URL = f"{BASE_URL}/my-favorites"
 
-    def __init__(self, headless: bool = True):
+    def __init__(self, headless: bool = True, saved_items_repo=None):
         load_dotenv()
         self.browser = Browser(headless=headless)
         self.browser.init_driver()
@@ -32,12 +32,26 @@ class Yad2Client:
         self.parser = FeedParser()
         self.auth = Yad2Auth(self.browser)
         self.enricher = ItemEnricher(self.browser)
-        self.navigation = NavigationHandler(self.browser)
+        self._saved_items_repo = None  # Initialize private variable
+        self.navigation = NavigationHandler(self.browser, saved_items_repo)
         self.feed_handler = FeedHandler(self.browser, self.parser)
         self.email_sender = EmailSender()
         self.logger = logging.getLogger(__name__)
         
+        # Set saved_items_repo after navigation is initialized
+        self.saved_items_repo = saved_items_repo
+        
         self.login()
+
+    @property
+    def saved_items_repo(self):
+        return self._saved_items_repo
+
+    @saved_items_repo.setter
+    def saved_items_repo(self, value):
+        self._saved_items_repo = value
+        if hasattr(self, 'navigation'):
+            self.navigation.saved_items_repo = value
 
     def navigate_to(self, url: str) -> bool:
         success = self.navigation.navigate_to(url)
@@ -64,29 +78,35 @@ class Yad2Client:
         
         return unique_items
 
-    def get_feed_items(self) -> List[FeedItem] |List[Tuple[str, str]]:
-        """
-        Get feed items from current page.
-        Returns either List[FeedItem] for regular feed or List[Tuple[str, str]] for saved items.
-        """
+    def get_feed_items(self) -> List[FeedItem]:
+        """Get feed items from current page."""
         try:
             # Check for CAPTCHA before getting items
             if self.browser.check_for_captcha():
                 input("Press Enter once you've completed the CAPTCHA...")
             
             # Get and deduplicate items
-            items = self.feed_handler.get_current_page_items()
-            
-            # If items are tuples, they're from saved items page
-            if items and isinstance(items[0], tuple):
-                return items
-                
-            # Otherwise they're regular feed items that need deduplication
+            items = self.feed_handler.get_feed_items()
             return self._deduplicate_items(items)
             
         except Exception as e:
             self.logger.error(f"Error while getting feed items: {str(e)}")
             print(f"Error while getting feed items: {str(e)}")
+            return []
+
+    def get_saved_items(self) -> List[Tuple[str, str]]:
+        """Get items from the saved items page."""
+        try:
+            # Check for CAPTCHA before getting items
+            if self.browser.check_for_captcha():
+                input("Press Enter once you've completed the CAPTCHA...")
+            
+            # Get saved items
+            return self.feed_handler.get_saved_items()
+            
+        except Exception as e:
+            self.logger.error(f"Error while getting saved items: {str(e)}")
+            print(f"Error while getting saved items: {str(e)}")
             return []
 
     def _get_total_pages(self) -> int:
@@ -182,13 +202,13 @@ class Yad2Client:
 
     def save_ad(self, item: FeedItem) -> bool:
         """
-        Attempts to save/like a specific feed item by clicking its save button.
+        Attempts to save/like a specific feed item by clicking its save button and storing it in the database.
         
         Args:
             item: The FeedItem to save
             
         Returns:
-            bool: True if the save operation was successful, False otherwise
+            bool: True if both the save operation and database storage were successful, False otherwise
         """
         if not item or not item.item_id:
             self.logger.error("Attempting to save invalid feed item")
@@ -214,9 +234,22 @@ class Yad2Client:
             """, item.item_id)
             
             if success:
-                self.logger.info(f"Successfully saved item {item.item_id}")
+                self.logger.info(f"Successfully saved item {item.item_id} on Yad2")
                 print("Saved ad")
-                return True
+                
+                # Also save to database if we have a repository
+                if self.saved_items_repo:
+                    try:
+                        self.saved_items_repo.add_item(item.item_id, item.url)
+                        self.logger.info(f"Successfully saved item {item.item_id} to database")
+                        return True
+                    except Exception as e:
+                        self.logger.error(f"Failed to save item {item.item_id} to database: {str(e)}")
+                        print("Warning: Item saved on Yad2 but failed to save to local database")
+                        return False
+                else:
+                    self.logger.warning("No database repository available to save item")
+                    return True  # Still return True as the Yad2 save was successful
             else:
                 self.logger.warning(f"Could not find save button for item {item.item_id}")
                 print("Error saving ad!")
