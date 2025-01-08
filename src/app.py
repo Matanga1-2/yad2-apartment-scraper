@@ -1,13 +1,13 @@
 import logging
 
-from address import AddressMatcher
-from cli.input_handler import display_feed_stats, get_valid_url
-from processor.feed_processor import categorize_feed_items, process_feed_items
-from utils.console import prompt_yes_no
-from utils.text_formatter import format_hebrew
-from yad2.client import Yad2Client
-from db.database import Database
-from db.saved_items_repository import SavedItemsRepository
+from src.address import AddressMatcher
+from src.cli.input_handler import display_feed_stats, get_valid_url
+from src.processor.feed_processor import categorize_feed_items, process_feed_items
+from src.utils.console import prompt_yes_no
+from src.utils.text_formatter import format_hebrew
+from src.yad2.client import Yad2Client
+from src.db.database import Database
+from src.db.saved_items_repository import SavedItemsRepository
 
 
 class Yad2ScraperApp:
@@ -65,21 +65,23 @@ class Yad2ScraperApp:
 
     def _handle_store_saved_items(self) -> None:
         """Handle storing saved items from Yad2 to local DB."""
-        print("\nPlease navigate to your saved items page on Yad2...")
-        input("Press Enter when ready...")
+        print("\nNavigating to saved items page...")
+        if not self.client.navigate_to_saved_items():
+            print("Failed to navigate to saved items page")
+            return
         
         items = self.client.get_feed_items()
         if not items:
-            print("No items found on the current page")
+            print("No items found on the saved items page")
             return
-            
+        
         count = 0
-        for item in items:
+        for item_id, url in items:  # Now we know items are tuples
             try:
-                self.saved_items_repo.add_item(item.item_id, item.url)
+                self.saved_items_repo.add_item(item_id, url)
                 count += 1
             except Exception as e:
-                logging.error(f"Failed to store item {item.item_id}: {str(e)}")
+                logging.error(f"Failed to store item {item_id}: {str(e)}")
         
         print(f"\nStored {count} items in the database")
 

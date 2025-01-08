@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, List
 
-from yad2.models import FeedItem
+from src.yad2.models import FeedItem
 
 
 @dataclass

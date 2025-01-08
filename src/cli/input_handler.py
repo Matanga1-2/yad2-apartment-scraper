@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from urllib.parse import urlparse
 
-from processor.models import CategorizedFeed
+from src.processor.models import CategorizedFeed
 
 
 def validate_yad2_url(url: str) -> bool:
