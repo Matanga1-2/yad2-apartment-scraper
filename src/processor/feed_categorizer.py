@@ -1,7 +1,7 @@
 from typing import List
 
-from address import AddressMatcher
-from yad2.models import FeedItem
+from src.address import AddressMatcher
+from src.yad2.models import FeedItem
 
 from .models import CategorizedFeed
 

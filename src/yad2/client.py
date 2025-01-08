@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import List
+from typing import List, Tuple
 
 from dotenv import load_dotenv
 from selenium.webdriver.common.by import By
@@ -19,6 +19,7 @@ from .navigation import NavigationHandler
 class Yad2Client:
     BASE_URL = "https://www.yad2.co.il"
     REALESTATE_URL = f"{BASE_URL}/realestate/forsale"
+    SAVED_ITEMS_URL = f"{BASE_URL}/my-favorites"
 
     def __init__(self, headless: bool = True):
         load_dotenv()
@@ -63,23 +64,25 @@ class Yad2Client:
         
         return unique_items
 
-    def get_feed_items(self) -> List[FeedItem]:
-        """Get feed items from current page and display total pages available."""
+    def get_feed_items(self) -> List[FeedItem] |List[Tuple[str, str]]:
+        """
+        Get feed items from current page.
+        Returns either List[FeedItem] for regular feed or List[Tuple[str, str]] for saved items.
+        """
         try:
             # Check for CAPTCHA before getting items
             if self.browser.check_for_captcha():
                 input("Press Enter once you've completed the CAPTCHA...")
             
-            # Get total pages info for display only
-            total_pages = self._get_total_pages()
-            print(f"Processing page 1/{total_pages}...")
-            
             # Get and deduplicate items
             items = self.feed_handler.get_current_page_items()
-            unique_items = self._deduplicate_items(items)
             
-            print(f"\nFound {len(unique_items)} unique items on current page")
-            return unique_items
+            # If items are tuples, they're from saved items page
+            if items and isinstance(items[0], tuple):
+                return items
+                
+            # Otherwise they're regular feed items that need deduplication
+            return self._deduplicate_items(items)
             
         except Exception as e:
             self.logger.error(f"Error while getting feed items: {str(e)}")
@@ -223,3 +226,7 @@ class Yad2Client:
             self.logger.error(f"Error while trying to save item {item.item_id}: {str(e)}")
             print("Error saving ad!")
             return False
+
+    def navigate_to_saved_items(self) -> bool:
+        """Navigate to the saved items page."""
+        return self.navigate_to(self.SAVED_ITEMS_URL)

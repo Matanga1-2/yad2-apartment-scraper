@@ -1,11 +1,13 @@
 import logging
 
-from address import AddressMatcher
-from cli.input_handler import display_feed_stats, get_valid_url
-from processor.feed_processor import categorize_feed_items, process_feed_items
-from utils.console import prompt_yes_no
-from utils.text_formatter import format_hebrew
-from yad2.client import Yad2Client
+from src.address import AddressMatcher
+from src.cli.input_handler import display_feed_stats, get_valid_url
+from src.processor.feed_processor import categorize_feed_items, process_feed_items
+from src.utils.console import prompt_yes_no
+from src.utils.text_formatter import format_hebrew
+from src.yad2.client import Yad2Client
+from src.db.database import Database
+from src.db.saved_items_repository import SavedItemsRepository
 
 
 class Yad2ScraperApp:
@@ -13,6 +15,11 @@ class Yad2ScraperApp:
         self.client = client
         self.address_matcher = address_matcher
         self.feed_items = None
+        
+        # Initialize database
+        self.db = Database()
+        self.db.create_tables()
+        self.saved_items_repo = SavedItemsRepository(self.db.get_session())
 
     def run(self) -> None:
         """Run the main application loop."""
@@ -35,9 +42,10 @@ class Yad2ScraperApp:
         print("1. Enter new URL")
         print("2. Get feed items")
         print("3. Process current feed")
-        print("4. Exit")
+        print("4. Store saved items")
+        print("5. Exit")
         
-        choice = input("\nEnter your choice (1-4): ").strip()
+        choice = input("\nEnter your choice (1-5): ").strip()
         
         if choice == '1':
             self._handle_new_url()
@@ -46,12 +54,36 @@ class Yad2ScraperApp:
         elif choice == '3':
             self._handle_process_feed()
         elif choice == '4':
+            self._handle_store_saved_items()
+        elif choice == '5':
             print("Goodbye!")
             return False
         else:
-            print("Invalid choice. Please enter a number between 1 and 4.")
+            print("Invalid choice. Please enter a number between 1 and 5.")
         
         return True
+
+    def _handle_store_saved_items(self) -> None:
+        """Handle storing saved items from Yad2 to local DB."""
+        print("\nNavigating to saved items page...")
+        if not self.client.navigate_to_saved_items():
+            print("Failed to navigate to saved items page")
+            return
+        
+        items = self.client.get_feed_items()
+        if not items:
+            print("No items found on the saved items page")
+            return
+        
+        count = 0
+        for item_id, url in items:  # Now we know items are tuples
+            try:
+                self.saved_items_repo.add_item(item_id, url)
+                count += 1
+            except Exception as e:
+                logging.error(f"Failed to store item {item_id}: {str(e)}")
+        
+        print(f"\nStored {count} items in the database")
 
     def _handle_new_url(self) -> None:
         url = get_valid_url()
