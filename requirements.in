@@ -19,3 +19,6 @@ pytest
 
 # Optional: Development tools (remove if not needed)
 ruff  # if you're using it for linting
+
+# SQLAlchemy
+sqlalchemy
