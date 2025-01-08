@@ -9,6 +9,9 @@ test-address:
 test-db:
 	pytest -v tests/db/
 
+test-yad2:
+	pytest -v tests/yad2/
+
 coverage:
 	pytest --cov=src tests/
 
