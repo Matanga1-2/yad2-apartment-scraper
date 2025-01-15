@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import logging
 import os
 import signal
@@ -57,8 +58,9 @@ def main():
     try:
         client = Yad2Client(headless=False)
         address_matcher = AddressMatcher(get_resource_path(os.path.join('consts', 'supported_streets.json')))
+        search_urls = json.load(open(get_resource_path(os.path.join('consts', 'search_url.json'))))
         
-        app = Yad2ScraperApp(client, address_matcher)
+        app = Yad2ScraperApp(client, address_matcher, search_urls)
         app.run()
         
     except Exception as e:

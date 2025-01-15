@@ -11,7 +11,7 @@ from src.yad2.client import Yad2Client
 
 
 class Yad2ScraperApp:
-    def __init__(self, client: Yad2Client, address_matcher: AddressMatcher):
+    def __init__(self, client: Yad2Client, address_matcher: AddressMatcher, search_urls: dict):
         # Initialize database
         self.db = Database()
         self.db.create_tables()
@@ -21,6 +21,7 @@ class Yad2ScraperApp:
         self.client = client
         self.client.saved_items_repo = self.saved_items_repo  # Set the repo on the existing client
         self.address_matcher = address_matcher
+        self.search_urls = search_urls
         self.feed_items = None
 
     def run(self) -> None:
@@ -45,9 +46,10 @@ class Yad2ScraperApp:
         print("2. Get feed items")
         print("3. Process current feed")
         print("4. Store saved items")
-        print("5. Exit")
+        print("5. Go to all URLs")
+        print("6. Exit")
         
-        choice = input("\nEnter your choice (1-5): ").strip()
+        choice = input("\nEnter your choice (1-6): ").strip()
         
         if choice == '1':
             self._handle_new_url()
@@ -58,6 +60,8 @@ class Yad2ScraperApp:
         elif choice == '4':
             self._handle_store_saved_items()
         elif choice == '5':
+            self._handle_go_to_all_urls()
+        elif choice == '6':
             print("Goodbye!")
             return False
         else:
@@ -97,6 +101,17 @@ class Yad2ScraperApp:
         print("Navigating to URL...")
         self.client.navigate_to(url)
         self.feed_items = None
+
+
+    def _handle_go_to_all_urls(self) -> None:
+        self._handle_store_saved_items()
+        for name, url in self.search_urls.items():
+            print(f"Navigating to URL {name}...")
+            self.client.navigate_to(url)
+            self._handle_get_feed()
+            self._handle_process_feed()
+        print("Done going through all URLs!")
+        return False
 
     def _handle_get_feed(self) -> None:
         print("Fetching feed items...")
