@@ -2,6 +2,7 @@
 .idea
 .DS_Store
 consts/supported_streets.json
+consts/search_url.json
 /.ruff_cache
 
 # Credentials and secrets
