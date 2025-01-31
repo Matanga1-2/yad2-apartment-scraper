@@ -42,6 +42,19 @@ def main():
         if src_path not in sys.path:
             sys.path.insert(0, src_path)
             
+        # Create Yad2Scraper directory in user's home if it doesn't exist
+        home_dir = os.path.expanduser('~')
+        app_dir = os.path.join(home_dir, '.Yad2Scraper')
+        credentials_dir = os.path.join(app_dir, 'credentials')
+        os.makedirs(credentials_dir, exist_ok=True)
+        
+        # Copy client_secret.json to credentials directory if it exists in the package
+        client_secret_src = os.path.join(base_path, 'src', 'mail_sender', 'client_secret.json')
+        client_secret_dst = os.path.join(credentials_dir, 'client_secret.json')
+        if os.path.exists(client_secret_src) and not os.path.exists(client_secret_dst):
+            import shutil
+            shutil.copy2(client_secret_src, client_secret_dst)
+            
         # Now import and run the actual main function
         from src.main import main
         sys.exit(main())
@@ -74,7 +87,7 @@ try:
         
         # Include all data files
         '--add-data=consts/*:consts',
-        '--add-data=src/mail_sender/client_secret.json:src/mail_sender',
+        '--add-data=src/mail_sender/client_secret.json:src/mail_sender',  # Still include it in the package
         '--add-data=.env:.',
         '--add-data=src:src',  # Add the entire src directory
         

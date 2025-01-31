@@ -7,7 +7,7 @@ from email.mime.text import MIMEText
 
 from googleapiclient.discovery import build
 
-from src.mail_sender.init_credentials import init_gmail_credentials
+from src.mail_sender.init_credentials import get_credentials_dir, init_gmail_credentials
 
 
 class EmailSender:
@@ -26,9 +26,9 @@ class EmailSender:
 
     def initialize_credentials(self):
         """Initialize or load credentials for Gmail API using init_credentials logic."""
-        # Get the directory where this script is located
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        token_path = os.path.join(current_dir, 'token.pickle')
+        # Get the credentials directory
+        credentials_dir = get_credentials_dir()
+        token_path = os.path.join(credentials_dir, 'token.pickle')
 
         # Initialize credentials using the init_credentials function
         if not os.path.exists(token_path):
@@ -38,8 +38,12 @@ class EmailSender:
                 raise RuntimeError("Failed to initialize Gmail credentials.")
         
         # Load the credentials from token.pickle
-        with open(token_path, 'rb') as token:
-            self.creds = pickle.load(token)
+        try:
+            with open(token_path, 'rb') as token:
+                self.creds = pickle.load(token)
+        except Exception as err:
+            logging.error(f"Failed to load credentials from {token_path}: {str(err)}")
+            raise RuntimeError(f"Failed to load Gmail credentials: {str(err)}") from err
 
     def create_message(self, subject: str, body: str) -> dict:
         """Create a message for an email."""
