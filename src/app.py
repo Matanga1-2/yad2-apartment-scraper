@@ -4,6 +4,7 @@ from src.address import AddressMatcher
 from src.cli.input_handler import display_feed_stats, get_valid_url
 from src.db.database import Database
 from src.db.saved_items_repository import SavedItemsRepository
+from src.mail_sender.init_credentials import init_gmail_credentials
 from src.processor.feed_processor import categorize_feed_items, process_feed_items
 from src.utils.console import prompt_yes_no
 from src.utils.text_formatter import format_hebrew
@@ -47,9 +48,10 @@ class Yad2ScraperApp:
         print("3. Process current feed")
         print("4. Store saved items")
         print("5. Go to all URLs")
-        print("6. Exit")
+        print("6. Refresh Gmail credentials")
+        print("7. Exit")
         
-        choice = input("\nEnter your choice (1-6): ").strip()
+        choice = input("\nEnter your choice (1-7): ").strip()
         
         if choice == '1':
             self._handle_new_url()
@@ -62,10 +64,12 @@ class Yad2ScraperApp:
         elif choice == '5':
             self._handle_go_to_all_urls()
         elif choice == '6':
+            self._handle_refresh_credentials()
+        elif choice == '7':
             print("Goodbye!")
             return False
         else:
-            print("Invalid choice. Please enter a number between 1 and 5.")
+            print("Invalid choice. Please enter a number between 1 and 7.")
         
         return True
 
@@ -135,6 +139,19 @@ class Yad2ScraperApp:
             return
             
         items_to_process = [item for item in self.feed_items if not item.is_saved]
+        process_feed_items(items_to_process, self.address_matcher, self.client, self.saved_items_repo)
+
+    def _handle_refresh_credentials(self) -> None:
+        """Handle refreshing Gmail credentials."""
+        print("\nRefreshing Gmail credentials...")
+        force_new = prompt_yes_no("Do you want to force creation of new credentials?")
         
-        if prompt_yes_no("\nProceed with processing these items?"):
-            process_feed_items(items_to_process, self.address_matcher, self.client, self.saved_items_repo) 
+        try:
+            success = init_gmail_credentials(force_new=force_new)
+            if success:
+                print("Successfully refreshed Gmail credentials!")
+            else:
+                print("Failed to refresh Gmail credentials. Check the logs for more details.")
+        except Exception as e:
+            logging.error(f"Failed to refresh credentials: {str(e)}", exc_info=True)
+            print(f"Failed to refresh credentials: {str(e)}") 

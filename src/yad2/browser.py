@@ -49,10 +49,10 @@ class Browser:
             )
             self.logger.debug("Element found through wait_for_element")
             return element
-        except Exception as e:
-            self.logger.error(f"Element not found: {by}={value}, {str(e)}")
-            self.logger.error(f"Current URL: {self.driver.current_url}")
-            self.logger.error(f"Page source snippet: {self.driver.page_source[:500]}")
+        except Exception:
+            self.logger.error(f"Element not found: {by}={value}")
+            # self.logger.error(f"Current URL: {self.driver.current_url}")
+            # self.logger.error(f"Page source snippet: {self.driver.page_source[:500]}")
             raise
 
     @staticmethod
