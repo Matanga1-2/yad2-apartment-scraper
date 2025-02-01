@@ -18,48 +18,46 @@ def main():
             base_path = sys._MEIPASS
         else:
             base_path = os.path.abspath(os.path.dirname(__file__))
-            
-        # Load environment variables - try multiple locations
-        env_paths = [
-            os.path.join(base_path, '.env'),  # Look in frozen directory
-            os.path.join(os.path.dirname(base_path), '.env'),  # Look in parent directory
-            '.env'  # Look in current directory
-        ]
-        
-        env_loaded = False
-        for env_path in env_paths:
-            if os.path.exists(env_path):
-                load_dotenv(env_path)
-                print(f"Loaded environment from: {env_path}")
-                env_loaded = True
-                break
-                
-        if not env_loaded:
-            print("Warning: No .env file found!")
-            
-        # Rest of the setup...
-        src_path = os.path.join(base_path, 'src')
-        if src_path not in sys.path:
-            sys.path.insert(0, src_path)
-            
+
         # Create Yad2Scraper directory in user's home if it doesn't exist
         home_dir = os.path.expanduser('~')
         app_dir = os.path.join(home_dir, '.Yad2Scraper')
         credentials_dir = os.path.join(app_dir, 'credentials')
+        
+        # Ensure directories exist
+        os.makedirs(app_dir, exist_ok=True)
         os.makedirs(credentials_dir, exist_ok=True)
         
-        # Copy client_secret.json to credentials directory if it exists in the package
+        # Set up environment variables before anything else
+        env_paths = [
+            os.path.join(base_path, '.env'),
+            os.path.join(os.path.dirname(base_path), '.env'),
+            '.env'
+        ]
+        
+        for env_path in env_paths:
+            if os.path.exists(env_path):
+                load_dotenv(env_path)
+                break
+                
+        # Add src to path
+        src_path = os.path.join(base_path, 'src')
+        if src_path not in sys.path:
+            sys.path.insert(0, src_path)
+            
+        # Handle client_secret.json
         client_secret_src = os.path.join(base_path, 'src', 'mail_sender', 'client_secret.json')
         client_secret_dst = os.path.join(credentials_dir, 'client_secret.json')
-        if os.path.exists(client_secret_src) and not os.path.exists(client_secret_dst):
-            import shutil
-            shutil.copy2(client_secret_src, client_secret_dst)
+        
+        if not os.path.exists(client_secret_dst):  # Only copy if destination doesn't exist
+            if os.path.exists(client_secret_src):
+                import shutil
+                shutil.copy2(client_secret_src, client_secret_dst)
             
         # Now import and run the actual main function
         from src.main import main
         sys.exit(main())
     except Exception as e:
-        # Print the full error traceback
         print("\\nAn error occurred:")
         traceback.print_exc()
         print("\\nPress Enter to exit...")
@@ -81,15 +79,16 @@ wrapper_script = create_error_handler()
 
 try:
     PyInstaller.__main__.run([
-        wrapper_script,  # Use our wrapper script instead of main.py directly
+        wrapper_script,
         '--name=Yad2Scraper',
         '--onefile',
+        '--clean',
         
         # Include all data files
         '--add-data=consts/*:consts',
-        '--add-data=src/mail_sender/client_secret.json:src/mail_sender',  # Still include it in the package
+        '--add-data=src/mail_sender/client_secret.json:src/mail_sender',  # Include client_secret.json in the package
         '--add-data=.env:.',
-        '--add-data=src:src',  # Add the entire src directory
+        '--add-data=src:src',
         
         # Include all required modules
         '--collect-all=selenium',
